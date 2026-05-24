@@ -1,0 +1,1016 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Pass Network & Team Structure — Julie Landrevie</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@700;800&family=Inter:wght@400;500;600&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet" />
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --bg:        #080c18;
+    --surface:   #0f1623;
+    --surface2:  #151e2e;
+    --border:    #1e2d44;
+    --border2:   #263650;
+    --text:      #dde3f0;
+    --muted:     #5a6e8a;
+    --teal:      #3dd6c8;
+    --teal2:     #1aa89b;
+    --orange:    #f6a84c;
+    --orange2:   #d4841e;
+    --green:     #5eca8f;
+    --red:       #e06070;
+    --font-mono: 'DM Mono', monospace;
+    --font-sans: 'Inter', sans-serif;
+  }
+
+  html { scroll-behavior: smooth; }
+  .hero-title, h1, h2, h3 { font-family: 'Syne', sans-serif; }
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: var(--font-sans);
+    line-height: 1.6;
+    overflow-x: hidden;
+  }
+
+  /* ── NOISE TEXTURE OVERLAY */
+  body::before {
+    content: '';
+    position: fixed; inset: 0; z-index: 0; pointer-events: none;
+    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.04'/%3E%3C/svg%3E");
+    opacity: 0.3;
+  }
+
+  /* ── GRID LINES BACKGROUND */
+  body::after {
+    content: '';
+    position: fixed; inset: 0; z-index: 0; pointer-events: none;
+    background-image:
+      linear-gradient(var(--border) 1px, transparent 1px),
+      linear-gradient(90deg, var(--border) 1px, transparent 1px);
+    background-size: 60px 60px;
+    opacity: 0.25;
+  }
+
+  .container {
+    position: relative; z-index: 1;
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 0 40px;
+  }
+
+  /* ── NAV */
+  nav {
+    position: sticky; top: 0; z-index: 100;
+    background: rgba(8, 12, 24, 0.85);
+    backdrop-filter: blur(12px);
+    border-bottom: 1px solid var(--border);
+    padding: 0 40px;
+  }
+  .nav-inner {
+    max-width: 1200px; margin: 0 auto;
+    display: flex; align-items: center; justify-content: space-between;
+    height: 56px;
+  }
+  .nav-brand {
+    font-family: var(--font-mono); font-size: 12px; color: var(--teal);
+    letter-spacing: 1px; text-decoration: none;
+  }
+  .nav-links { display: flex; gap: 32px; }
+  .nav-links a {
+    font-family: var(--font-mono); font-size: 11px; color: var(--muted);
+    text-decoration: none; letter-spacing: 1px; text-transform: uppercase;
+    transition: color 0.2s;
+  }
+  .nav-links a:hover { color: var(--text); }
+
+  /* ── HERO */
+  .hero {
+    padding: 100px 0 72px;
+    border-bottom: 1px solid var(--border);
+  }
+  .hero-tag {
+    font-family: var(--font-mono); font-size: 11px; color: var(--teal);
+    letter-spacing: 3px; text-transform: uppercase;
+    display: flex; align-items: center; gap: 10px;
+    margin-bottom: 28px;
+  }
+  .hero-tag::before {
+    content: ''; display: block; width: 40px; height: 1px; background: var(--teal);
+  }
+  .hero-title {
+    font-size: clamp(40px, 6vw, 72px);
+    font-weight: 800;
+    line-height: 1.02;
+    letter-spacing: -1.5px;
+    color: #fff;
+    margin-bottom: 16px;
+  }
+  .hero-title span { color: var(--teal); }
+  .hero-desc {
+    font-family: var(--font-mono); font-size: 13px; color: var(--muted);
+    max-width: 560px; line-height: 1.8;
+    margin-bottom: 40px;
+  }
+  .hero-meta {
+    display: flex; gap: 32px; flex-wrap: wrap;
+  }
+  .meta-item {
+    display: flex; flex-direction: column; gap: 4px;
+  }
+  .meta-label {
+    font-family: var(--font-mono); font-size: 10px; color: var(--muted);
+    letter-spacing: 2px; text-transform: uppercase;
+  }
+  .meta-value {
+    font-family: var(--font-mono); font-size: 13px; color: var(--text);
+  }
+  .badge {
+    display: inline-flex; align-items: center;
+    padding: 4px 10px;
+    border: 1px solid var(--border2);
+    border-radius: 4px;
+    font-family: var(--font-mono); font-size: 10px; color: var(--muted);
+    letter-spacing: 1px;
+  }
+  .badge.green { border-color: rgba(94,202,143,0.3); color: var(--green); }
+  .badge.orange { border-color: rgba(246,168,76,0.3); color: var(--orange); }
+
+  /* ── SECTIONS */
+  section { padding: 72px 0; border-bottom: 1px solid var(--border); }
+  .section-header {
+    display: flex; align-items: center; gap: 12px;
+    margin-bottom: 48px;
+  }
+  .section-tag {
+    font-family: var(--font-mono); font-size: 10px; color: var(--teal);
+    letter-spacing: 3px; text-transform: uppercase;
+  }
+  .section-line { flex: 1; height: 1px; background: var(--border); }
+
+  /* ── MATCH CARD */
+  .match-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 32px;
+    display: flex; align-items: center; justify-content: space-between;
+    margin-bottom: 40px;
+    gap: 24px;
+    flex-wrap: wrap;
+  }
+  .match-team {
+    font-family: var(--font-sans); font-size: 18px; font-weight: 700; color: var(--text);
+  }
+  .match-score {
+    font-family: var(--font-mono); font-size: 48px; font-weight: 700;
+    color: var(--teal); line-height: 1; text-align: center;
+  }
+  .match-info {
+    font-family: var(--font-mono); font-size: 11px; color: var(--muted);
+    text-align: center; margin-top: 6px; letter-spacing: 1px;
+  }
+
+  /* ── METRICS GRID */
+  .metrics-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 16px;
+    margin-bottom: 48px;
+  }
+  .metric-block {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 20px 22px;
+    transition: border-color 0.2s, transform 0.2s;
+  }
+  .metric-block:hover { border-color: var(--border2); transform: translateY(-2px); }
+  .metric-block.teal { border-left: 3px solid var(--teal); }
+  .metric-block.orange { border-left: 3px solid var(--orange); }
+  .metric-label {
+    font-family: var(--font-mono); font-size: 10px; color: var(--muted);
+    letter-spacing: 2px; text-transform: uppercase; margin-bottom: 8px;
+  }
+  .metric-row { display: flex; align-items: baseline; justify-content: space-between; }
+  .metric-val {
+    font-family: var(--font-mono); font-size: 26px; font-weight: 700;
+  }
+  .metric-val.teal { color: var(--teal); }
+  .metric-val.orange { color: var(--orange); }
+  .metric-team-tag {
+    font-family: var(--font-mono); font-size: 10px; color: var(--muted);
+  }
+  .delta {
+    font-family: var(--font-mono); font-size: 11px; margin-top: 6px;
+    display: flex; align-items: center; gap: 4px;
+  }
+  .delta.up { color: var(--green); }
+  .delta.down { color: var(--red); }
+
+  /* ── PITCH SVG */
+  .pitch-wrapper {
+    display: grid; grid-template-columns: 1fr 1fr; gap: 24px;
+    margin-bottom: 40px;
+  }
+  @media (max-width: 768px) { .pitch-wrapper { grid-template-columns: 1fr; } }
+
+  .pitch-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 24px;
+  }
+  .pitch-title {
+    font-family: var(--font-mono); font-size: 11px; color: var(--muted);
+    letter-spacing: 2px; text-transform: uppercase; margin-bottom: 16px;
+  }
+  svg.pitch-svg { width: 100%; height: auto; display: block; }
+
+  /* ── CENTRALITY TABLE */
+  .centrality-grid {
+    display: grid; grid-template-columns: 1fr 1fr; gap: 24px;
+  }
+  @media (max-width: 768px) { .centrality-grid { grid-template-columns: 1fr; } }
+
+  .player-row {
+    display: flex; align-items: center; gap: 14px;
+    padding: 12px 0;
+    border-bottom: 1px solid var(--border);
+  }
+  .player-row:last-child { border-bottom: none; }
+  .player-rank {
+    font-family: var(--font-mono); font-size: 11px; color: var(--muted);
+    width: 20px; text-align: center; flex-shrink: 0;
+  }
+  .player-name-cell { flex: 1; }
+  .player-name-txt { font-size: 13px; font-weight: 600; color: var(--text); }
+  .player-pos { font-family: var(--font-mono); font-size: 10px; color: var(--muted); }
+  .bc-bar-wrap { width: 100px; flex-shrink: 0; }
+  .bc-bar-bg {
+    height: 4px; border-radius: 2px; background: var(--border2);
+    overflow: hidden;
+  }
+  .bc-bar-fill {
+    height: 100%; border-radius: 2px;
+    transition: width 0.8s cubic-bezier(0.34, 1.56, 0.64, 1);
+  }
+  .bc-val {
+    font-family: var(--font-mono); font-size: 11px;
+    text-align: right; margin-top: 3px;
+  }
+  .bc-val.teal { color: var(--teal); }
+  .bc-val.orange { color: var(--orange); }
+
+  /* ── COMPARISON BARS */
+  .compare-table { width: 100%; border-collapse: collapse; }
+  .compare-table td {
+    padding: 14px 0;
+    border-bottom: 1px solid var(--border);
+    vertical-align: middle;
+  }
+  .compare-table tr:last-child td { border-bottom: none; }
+  .compare-metric-name {
+    font-family: var(--font-mono); font-size: 11px; color: var(--muted);
+    width: 160px; text-transform: uppercase; letter-spacing: 1px;
+  }
+  .compare-bar-cell { padding: 14px 20px !important; }
+  .dual-bar { display: flex; flex-direction: column; gap: 4px; }
+  .bar-row { display: flex; align-items: center; gap: 8px; }
+  .bar-team { font-family: var(--font-mono); font-size: 10px; width: 70px; text-align: right; }
+  .bar-track { flex: 1; height: 5px; background: var(--border2); border-radius: 3px; overflow: hidden; }
+  .bar-fill { height: 100%; border-radius: 3px; }
+  .bar-fill.teal { background: var(--teal); }
+  .bar-fill.orange { background: var(--orange); }
+
+  /* ── TACTICAL INSIGHT */
+  .insight-grid {
+    display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+    gap: 16px;
+  }
+  .insight-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 20px 22px;
+  }
+  .insight-icon {
+    font-size: 18px; margin-bottom: 10px;
+  }
+  .insight-title {
+    font-family: var(--font-mono); font-size: 11px; color: var(--teal);
+    text-transform: uppercase; letter-spacing: 2px; margin-bottom: 8px;
+  }
+  .insight-text {
+    font-family: var(--font-mono); font-size: 12px; color: var(--muted);
+    line-height: 1.7;
+  }
+  .insight-text strong { color: var(--text); }
+
+  /* ── STACK */
+  .stack-pills { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 24px; }
+  .stack-pill {
+    padding: 6px 14px;
+    border: 1px solid var(--border2);
+    border-radius: 4px;
+    font-family: var(--font-mono); font-size: 11px; color: var(--muted);
+    transition: border-color 0.2s, color 0.2s;
+  }
+  .stack-pill:hover { border-color: var(--teal); color: var(--teal); }
+
+  /* ── FOOTER */
+  footer {
+    padding: 40px 0;
+    border-top: 1px solid var(--border);
+  }
+  .footer-inner {
+    display: flex; align-items: center; justify-content: space-between;
+    flex-wrap: wrap; gap: 16px;
+  }
+  .footer-left {
+    font-family: var(--font-mono); font-size: 11px; color: var(--muted);
+    line-height: 1.8;
+  }
+  .footer-links { display: flex; gap: 24px; }
+  .footer-links a {
+    font-family: var(--font-mono); font-size: 11px; color: var(--muted);
+    text-decoration: none; transition: color 0.2s;
+  }
+  .footer-links a:hover { color: var(--teal); }
+
+  /* ── ANIMATIONS */
+  @keyframes fadeUp {
+    from { opacity: 0; transform: translateY(20px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+  .anim { animation: fadeUp 0.6s ease both; }
+  .d1 { animation-delay: 0.1s; }
+  .d2 { animation-delay: 0.2s; }
+  .d3 { animation-delay: 0.3s; }
+  .d4 { animation-delay: 0.4s; }
+</style>
+</head>
+<body>
+
+<!-- NAV -->
+<nav>
+  <div class="nav-inner">
+    <a class="nav-brand" href="#">JL // Football Analytics</a>
+    <div class="nav-links">
+      <a href="#overview">Overview</a>
+      <a href="#network">Network</a>
+      <a href="#centralite">Centrality</a>
+      <a href="#comparaison">Comparison</a>
+    </div>
+  </div>
+</nav>
+
+<!-- HERO -->
+<div class="hero">
+  <div class="container">
+    <div class="hero-tag anim d1">Projet 6 — Pass Network & Team Structure</div>
+    <h1 class="hero-title anim d2">
+      Pass Networks<br />&amp; <span>Team Structure</span>
+    </h1>
+    <p class="hero-desc anim d3">
+      Analyse des patterns de circulation du ballon, identification des joueurs-pivots
+      et comparaison de la structure tactique de deux équipes à partir des données StatsBomb.
+    </p>
+    <div class="hero-meta anim d4">
+      <div class="meta-item">
+        <span class="meta-label">Source</span>
+        <span class="meta-value">StatsBomb Open Data</span>
+      </div>
+      <div class="meta-item">
+        <span class="meta-label">Competition</span>
+        <span class="meta-value">La Liga 2020/21</span>
+      </div>
+      <div class="meta-item">
+        <span class="meta-label">Stack</span>
+        <span class="meta-value">Python · mplsoccer · NetworkX</span>
+      </div>
+      <div class="meta-item">
+        <span class="meta-label">Status</span>
+        <span class="badge green">✓ Live</span>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- OVERVIEW -->
+<section id="overview">
+  <div class="container">
+    <div class="section-header">
+      <span class="section-tag">Match Analysis</span>
+      <div class="section-line"></div>
+    </div>
+
+    <div class="match-card">
+      <div style="text-align:right">
+        <div class="match-team">Deportivo Alavés</div>
+        <div style="font-family:var(--font-mono);font-size:11px;color:var(--muted);margin-top:4px;">La Liga J1</div>
+      </div>
+      <div>
+        <div class="match-score">1 – 1</div>
+        <div class="match-info">La Liga · 2020/21 · Full Match</div>
+      </div>
+      <div>
+        <div class="match-team">Barcelona</div>
+        <div style="font-family:var(--font-mono);font-size:11px;color:var(--muted);margin-top:4px;">StatsBomb #3773386</div>
+      </div>
+    </div>
+
+    <!-- Metrics -->
+    <div class="metrics-grid">
+      <div class="metric-block teal">
+        <div class="metric-label">Total Passes — Alavés</div>
+        <div class="metric-row">
+          <span class="metric-val teal">136</span>
+          <span class="metric-team-tag">Alavés</span>
+        </div>
+        <div class="delta down">↓ 473 passes de moins que le Barça</div>
+      </div>
+      <div class="metric-block orange">
+        <div class="metric-label">Total Passes — Barça</div>
+        <div class="metric-row">
+          <span class="metric-val orange">609</span>
+          <span class="metric-team-tag">Barcelona</span>
+        </div>
+        <div class="delta up">↑ 4,5× plus de passes que l'adversaire</div>
+      </div>
+      <div class="metric-block teal">
+        <div class="metric-label">Active Connections — Alavés</div>
+        <div class="metric-row">
+          <span class="metric-val teal">17</span>
+          <span class="metric-team-tag">liens ≥ 3 passes</span>
+        </div>
+      </div>
+      <div class="metric-block orange">
+        <div class="metric-label">Active Connections — Barça</div>
+        <div class="metric-row">
+          <span class="metric-val orange">61</span>
+          <span class="metric-team-tag">liens ≥ 3 passes</span>
+        </div>
+        <div class="delta up">↑ réseau 3,6× plus dense</div>
+      </div>
+      <div class="metric-block teal">
+        <div class="metric-label">Network Density — Alavés</div>
+        <div class="metric-row">
+          <span class="metric-val teal">0.155</span>
+        </div>
+        <div class="delta" style="color:var(--muted)">Jeu structuré et prudent</div>
+      </div>
+      <div class="metric-block orange">
+        <div class="metric-label">Network Density — Barça</div>
+        <div class="metric-row">
+          <span class="metric-val orange">0.555</span>
+        </div>
+        <div class="delta up">↑ possession ultra-connectée</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- PASS NETWORKS -->
+<section id="network">
+  <div class="container">
+    <div class="section-header">
+      <span class="section-tag">Pass Networks</span>
+      <div class="section-line"></div>
+    </div>
+
+    <div class="pitch-wrapper">
+      <!-- ALAVES -->
+      <div class="pitch-card">
+        <div class="pitch-title" style="color:var(--teal)">Deportivo Alavés · 136 passes · 17 links</div>
+        <svg class="pitch-svg" viewBox="0 0 105 68" xmlns="http://www.w3.org/2000/svg">
+          <rect width="105" height="68" fill="#0d1a10" rx="2"/>
+          <rect x="0.5" y="0.5" width="104" height="67" fill="none" stroke="#1e3a26" stroke-width="0.4"/>
+          <circle cx="52.5" cy="34" r="9.15" fill="none" stroke="#1e3a26" stroke-width="0.4"/>
+          <line x1="52.5" y1="0.5" x2="52.5" y2="67.5" stroke="#1e3a26" stroke-width="0.4"/>
+          <rect x="0.5" y="13.84" width="16.5" height="40.32" fill="none" stroke="#1e3a26" stroke-width="0.4"/>
+          <rect x="88" y="13.84" width="16.5" height="40.32" fill="none" stroke="#1e3a26" stroke-width="0.4"/>
+          <g id="edges">
+          <line x1="9.8" y1="36.6" x2="26.2" y2="23.4" stroke="#3dd6c8" stroke-width="3.4" stroke-opacity="0.85" marker-end="url(#arr-t)"/>
+          <line x1="44.9" y1="9.5" x2="50.5" y2="39.1" stroke="#3dd6c8" stroke-width="3.4" stroke-opacity="0.85" marker-end="url(#arr-t)"/>
+          <line x1="50.5" y1="39.1" x2="55.6" y2="61.8" stroke="#3dd6c8" stroke-width="2.8" stroke-opacity="0.72" marker-end="url(#arr-t)"/>
+          <line x1="55.6" y1="61.8" x2="44.1" y2="60.0" stroke="#3dd6c8" stroke-width="2.8" stroke-opacity="0.72" marker-end="url(#arr-t)"/>
+          <line x1="55.6" y1="61.8" x2="50.5" y2="39.1" stroke="#3dd6c8" stroke-width="2.8" stroke-opacity="0.72" marker-end="url(#arr-t)"/>
+          <line x1="49.2" y1="27.9" x2="58.5" y2="22.1" stroke="#3dd6c8" stroke-width="2.8" stroke-opacity="0.72" marker-end="url(#arr-t)"/>
+          <line x1="44.9" y1="9.5" x2="49.2" y2="27.9" stroke="#3dd6c8" stroke-width="2.8" stroke-opacity="0.72" marker-end="url(#arr-t)"/>
+          <line x1="38.1" y1="34.1" x2="44.9" y2="9.5" stroke="#3dd6c8" stroke-width="2.8" stroke-opacity="0.72" marker-end="url(#arr-t)"/>
+          <line x1="44.1" y1="60.0" x2="38.1" y2="34.1" stroke="#3dd6c8" stroke-width="2.8" stroke-opacity="0.72" marker-end="url(#arr-t)"/>
+          <line x1="49.2" y1="27.9" x2="44.9" y2="9.5" stroke="#3dd6c8" stroke-width="2.2" stroke-opacity="0.59" marker-end="url(#arr-t)"/>
+          <line x1="44.1" y1="60.0" x2="28.1" y2="43.3" stroke="#3dd6c8" stroke-width="2.2" stroke-opacity="0.59" marker-end="url(#arr-t)"/>
+          <line x1="44.1" y1="60.0" x2="55.6" y2="61.8" stroke="#3dd6c8" stroke-width="2.2" stroke-opacity="0.59" marker-end="url(#arr-t)"/>
+          <line x1="58.5" y1="22.1" x2="55.6" y2="61.8" stroke="#3dd6c8" stroke-width="2.2" stroke-opacity="0.59" marker-end="url(#arr-t)"/>
+          <line x1="38.1" y1="34.1" x2="44.1" y2="60.0" stroke="#3dd6c8" stroke-width="2.2" stroke-opacity="0.59" marker-end="url(#arr-t)"/>
+          <line x1="38.1" y1="34.1" x2="50.5" y2="39.1" stroke="#3dd6c8" stroke-width="2.2" stroke-opacity="0.59" marker-end="url(#arr-t)"/>
+          <line x1="51.3" y1="50.3" x2="49.2" y2="27.9" stroke="#3dd6c8" stroke-width="2.2" stroke-opacity="0.59" marker-end="url(#arr-t)"/>
+          <line x1="28.1" y1="43.3" x2="26.2" y2="23.4" stroke="#3dd6c8" stroke-width="2.2" stroke-opacity="0.59" marker-end="url(#arr-t)"/>
+          </g>
+          <g id="circles">
+          <circle cx="50.5" cy="39.1" r="4.39" fill="#3dd6c8" fill-opacity="0.93" stroke="white" stroke-width="0.7"/>
+          <text x="50.5" y="39.1" text-anchor="middle" dominant-baseline="middle" font-size="2.3" fill="white" font-weight="bold" font-family="monospace" paint-order="stroke" stroke="#0d1a10" stroke-width="0.9">10</text>
+          <circle cx="55.6" cy="61.8" r="4.23" fill="#3dd6c8" fill-opacity="0.93" stroke="white" stroke-width="0.7"/>
+          <text x="55.6" y="61.8" text-anchor="middle" dominant-baseline="middle" font-size="2.2" fill="white" font-weight="bold" font-family="monospace" paint-order="stroke" stroke="#0d1a10" stroke-width="0.9">9</text>
+          <circle cx="9.8" cy="36.6" r="5.34" fill="#3dd6c8" fill-opacity="0.93" stroke="white" stroke-width="0.7"/>
+          <text x="9.8" y="36.6" text-anchor="middle" dominant-baseline="middle" font-size="2.8" fill="white" font-weight="bold" font-family="monospace" paint-order="stroke" stroke="#0d1a10" stroke-width="0.9">16</text>
+          <circle cx="26.2" cy="23.4" r="4.23" fill="#3dd6c8" fill-opacity="0.93" stroke="white" stroke-width="0.7"/>
+          <text x="26.2" y="23.4" text-anchor="middle" dominant-baseline="middle" font-size="2.2" fill="white" font-weight="bold" font-family="monospace" paint-order="stroke" stroke="#0d1a10" stroke-width="0.9">9</text>
+          <circle cx="44.1" cy="60.0" r="5.18" fill="#3dd6c8" fill-opacity="0.93" stroke="white" stroke-width="0.7"/>
+          <text x="44.1" y="60.0" text-anchor="middle" dominant-baseline="middle" font-size="2.7" fill="white" font-weight="bold" font-family="monospace" paint-order="stroke" stroke="#0d1a10" stroke-width="0.9">15</text>
+          <circle cx="49.2" cy="27.9" r="4.86" fill="#3dd6c8" fill-opacity="0.93" stroke="white" stroke-width="0.7"/>
+          <text x="49.2" y="27.9" text-anchor="middle" dominant-baseline="middle" font-size="2.5" fill="white" font-weight="bold" font-family="monospace" paint-order="stroke" stroke="#0d1a10" stroke-width="0.9">13</text>
+          <circle cx="58.5" cy="22.1" r="4.07" fill="#3dd6c8" fill-opacity="0.93" stroke="white" stroke-width="0.7"/>
+          <text x="58.5" y="22.1" text-anchor="middle" dominant-baseline="middle" font-size="2.1" fill="white" font-weight="bold" font-family="monospace" paint-order="stroke" stroke="#0d1a10" stroke-width="0.9">8</text>
+          <circle cx="38.1" cy="34.1" r="5.5" fill="#3dd6c8" fill-opacity="0.93" stroke="white" stroke-width="0.7"/>
+          <text x="38.1" y="34.1" text-anchor="middle" dominant-baseline="middle" font-size="2.9" fill="white" font-weight="bold" font-family="monospace" paint-order="stroke" stroke="#0d1a10" stroke-width="0.9">17</text>
+          <circle cx="44.9" cy="9.5" r="5.18" fill="#3dd6c8" fill-opacity="0.93" stroke="white" stroke-width="0.7"/>
+          <text x="44.9" y="9.5" text-anchor="middle" dominant-baseline="middle" font-size="2.7" fill="white" font-weight="bold" font-family="monospace" paint-order="stroke" stroke="#0d1a10" stroke-width="0.9">15</text>
+          <circle cx="51.3" cy="50.3" r="4.86" fill="#3dd6c8" fill-opacity="0.93" stroke="white" stroke-width="0.7"/>
+          <text x="51.3" y="50.3" text-anchor="middle" dominant-baseline="middle" font-size="2.5" fill="white" font-weight="bold" font-family="monospace" paint-order="stroke" stroke="#0d1a10" stroke-width="0.9">13</text>
+          <circle cx="28.1" cy="43.3" r="4.55" fill="#3dd6c8" fill-opacity="0.93" stroke="white" stroke-width="0.7"/>
+          <text x="28.1" y="43.3" text-anchor="middle" dominant-baseline="middle" font-size="2.4" fill="white" font-weight="bold" font-family="monospace" paint-order="stroke" stroke="#0d1a10" stroke-width="0.9">11</text>
+          </g>
+          <g id="labels">
+          <rect x="43.1" y="31.1" width="14.8" height="3.0" fill="#0d1117" fill-opacity="0.94" rx="0.4" stroke="#3a4a5a" stroke-width="0.3"/>
+          <text x="50.5" y="33.0" text-anchor="middle" font-size="2.05" fill="white" font-weight="bold" font-family="monospace">Deyverson</text>
+          <rect x="48.2" y="53.9" width="14.8" height="3.0" fill="#0d1117" fill-opacity="0.94" rx="0.4" stroke="#3a4a5a" stroke-width="0.3"/>
+          <text x="55.6" y="55.9" text-anchor="middle" font-size="2.05" fill="white" font-weight="bold" font-family="monospace">E. Méndez</text>
+          <rect x="1.7" y="27.6" width="16.2" height="3.0" fill="#0d1117" fill-opacity="0.94" rx="0.4" stroke="#3a4a5a" stroke-width="0.3"/>
+          <text x="9.8" y="29.6" text-anchor="middle" font-size="2.05" fill="white" font-weight="bold" font-family="monospace">F. Pacheco</text>
+          <rect x="18.1" y="15.6" width="16.2" height="3.0" fill="#0d1117" fill-opacity="0.94" rx="0.4" stroke="#3a4a5a" stroke-width="0.3"/>
+          <text x="26.2" y="17.6" text-anchor="middle" font-size="2.05" fill="white" font-weight="bold" font-family="monospace">F. Lejeune</text>
+          <rect x="36.0" y="51.2" width="16.2" height="3.0" fill="#0d1117" fill-opacity="0.94" rx="0.4" stroke="#3a4a5a" stroke-width="0.3"/>
+          <text x="44.1" y="53.2" text-anchor="middle" font-size="2.05" fill="white" font-weight="bold" font-family="monospace">J. Navarro</text>
+          <rect x="43.9" y="19.4" width="10.7" height="3.0" fill="#0d1117" fill-opacity="0.94" rx="0.4" stroke="#3a4a5a" stroke-width="0.3"/>
+          <text x="49.2" y="21.4" text-anchor="middle" font-size="2.05" fill="white" font-weight="bold" font-family="monospace">Joselu</text>
+          <rect x="51.8" y="14.4" width="13.4" height="3.0" fill="#0d1117" fill-opacity="0.94" rx="0.4" stroke="#3a4a5a" stroke-width="0.3"/>
+          <text x="58.5" y="16.4" text-anchor="middle" font-size="2.05" fill="white" font-weight="bold" font-family="monospace">L. Rioja</text>
+          <rect x="28.6" y="25.0" width="19.0" height="3.0" fill="#0d1117" fill-opacity="0.94" rx="0.4" stroke="#3a4a5a" stroke-width="0.3"/>
+          <text x="38.1" y="27.0" text-anchor="middle" font-size="2.05" fill="white" font-weight="bold" font-family="monospace">R. Battaglia</text>
+          <rect x="37.5" y="0.7" width="14.8" height="3.0" fill="#0d1117" fill-opacity="0.94" rx="0.4" stroke="#3a4a5a" stroke-width="0.3"/>
+          <text x="44.9" y="2.7" text-anchor="middle" font-size="2.05" fill="white" font-weight="bold" font-family="monospace">R. Duarte</text>
+          <rect x="45.2" y="41.8" width="12.1" height="3.0" fill="#0d1117" fill-opacity="0.94" rx="0.4" stroke="#3a4a5a" stroke-width="0.3"/>
+          <text x="51.3" y="43.8" text-anchor="middle" font-size="2.05" fill="white" font-weight="bold" font-family="monospace">T. Pina</text>
+          <rect x="18.6" y="35.1" width="19.0" height="3.0" fill="#0d1117" fill-opacity="0.94" rx="0.4" stroke="#3a4a5a" stroke-width="0.3"/>
+          <text x="28.1" y="37.1" text-anchor="middle" font-size="2.05" fill="white" font-weight="bold" font-family="monospace">V. Laguardia</text>
+          </g>
+          <defs>
+            <marker id="arr-t" markerWidth="4" markerHeight="4" refX="3" refY="2" orient="auto"><path d="M0,0 L4,2 L0,4 Z" fill="#3dd6c8" fill-opacity="0.7"/></marker>
+            <marker id="arr-o" markerWidth="4" markerHeight="4" refX="3" refY="2" orient="auto"><path d="M0,0 L4,2 L0,4 Z" fill="#f6a84c" fill-opacity="0.7"/></marker>
+          </defs>
+        </svg>
+      </div>
+
+      <!-- BARCELONA -->
+      <div class="pitch-card">
+        <div class="pitch-title" style="color:var(--orange)">Barcelona · 609 passes · 61 links</div>
+        <svg class="pitch-svg" viewBox="0 0 105 68" xmlns="http://www.w3.org/2000/svg">
+          <rect width="105" height="68" fill="#0d1a10" rx="2"/>
+          <rect x="0.5" y="0.5" width="104" height="67" fill="none" stroke="#1e3a26" stroke-width="0.4"/>
+          <circle cx="52.5" cy="34" r="9.15" fill="none" stroke="#1e3a26" stroke-width="0.4"/>
+          <line x1="52.5" y1="0.5" x2="52.5" y2="67.5" stroke="#1e3a26" stroke-width="0.4"/>
+          <rect x="0.5" y="13.84" width="16.5" height="40.32" fill="none" stroke="#1e3a26" stroke-width="0.4"/>
+          <rect x="88" y="13.84" width="16.5" height="40.32" fill="none" stroke="#1e3a26" stroke-width="0.4"/>
+          <g id="edges">
+          <line x1="45.4" y1="42.2" x2="44.7" y2="20.0" stroke="#f6a84c" stroke-width="3.4" stroke-opacity="0.85" marker-end="url(#arr-o)"/>
+          <line x1="45.4" y1="42.2" x2="63.9" y2="55.2" stroke="#f6a84c" stroke-width="3.26" stroke-opacity="0.82" marker-end="url(#arr-o)"/>
+          <line x1="63.9" y1="55.2" x2="45.4" y2="42.2" stroke="#f6a84c" stroke-width="2.85" stroke-opacity="0.73" marker-end="url(#arr-o)"/>
+          <line x1="45.4" y1="42.2" x2="56.2" y2="22.4" stroke="#f6a84c" stroke-width="2.72" stroke-opacity="0.7" marker-end="url(#arr-o)"/>
+          <line x1="56.2" y1="22.4" x2="45.4" y2="42.2" stroke="#f6a84c" stroke-width="2.72" stroke-opacity="0.7" marker-end="url(#arr-o)"/>
+          <line x1="63.9" y1="55.2" x2="72.6" y2="62.4" stroke="#f6a84c" stroke-width="2.72" stroke-opacity="0.7" marker-end="url(#arr-o)"/>
+          <line x1="55.7" y1="35.1" x2="71.1" y2="39.0" stroke="#f6a84c" stroke-width="1.9" stroke-opacity="0.52" marker-end="url(#arr-o)"/>
+          <line x1="44.7" y1="20.0" x2="45.4" y2="42.2" stroke="#f6a84c" stroke-width="1.9" stroke-opacity="0.52" marker-end="url(#arr-o)"/>
+          <line x1="56.2" y1="22.4" x2="55.3" y2="10.9" stroke="#f6a84c" stroke-width="1.76" stroke-opacity="0.5" marker-end="url(#arr-o)"/>
+          <line x1="55.3" y1="10.9" x2="56.2" y2="22.4" stroke="#f6a84c" stroke-width="1.63" stroke-opacity="0.47" marker-end="url(#arr-o)"/>
+          <line x1="56.2" y1="22.4" x2="78.6" y2="15.1" stroke="#f6a84c" stroke-width="1.63" stroke-opacity="0.47" marker-end="url(#arr-o)"/>
+          <line x1="45.4" y1="42.2" x2="12.5" y2="31.7" stroke="#f6a84c" stroke-width="1.63" stroke-opacity="0.47" marker-end="url(#arr-o)"/>
+          <line x1="44.7" y1="20.0" x2="55.7" y2="35.1" stroke="#f6a84c" stroke-width="1.63" stroke-opacity="0.47" marker-end="url(#arr-o)"/>
+          <line x1="55.3" y1="10.9" x2="44.7" y2="20.0" stroke="#f6a84c" stroke-width="1.63" stroke-opacity="0.47" marker-end="url(#arr-o)"/>
+          <line x1="12.5" y1="31.7" x2="56.2" y2="22.4" stroke="#f6a84c" stroke-width="1.63" stroke-opacity="0.47" marker-end="url(#arr-o)"/>
+          <line x1="63.9" y1="55.2" x2="71.1" y2="39.0" stroke="#f6a84c" stroke-width="1.63" stroke-opacity="0.47" marker-end="url(#arr-o)"/>
+          <line x1="55.3" y1="10.9" x2="78.6" y2="15.1" stroke="#f6a84c" stroke-width="1.49" stroke-opacity="0.44" marker-end="url(#arr-o)"/>
+          <line x1="44.7" y1="20.0" x2="78.6" y2="15.1" stroke="#f6a84c" stroke-width="1.49" stroke-opacity="0.44" marker-end="url(#arr-o)"/>
+          <line x1="44.7" y1="20.0" x2="55.3" y2="10.9" stroke="#f6a84c" stroke-width="1.49" stroke-opacity="0.44" marker-end="url(#arr-o)"/>
+          <line x1="56.2" y1="22.4" x2="71.1" y2="39.0" stroke="#f6a84c" stroke-width="1.49" stroke-opacity="0.44" marker-end="url(#arr-o)"/>
+          <line x1="72.6" y1="62.4" x2="63.9" y2="55.2" stroke="#f6a84c" stroke-width="1.49" stroke-opacity="0.44" marker-end="url(#arr-o)"/>
+          <line x1="78.6" y1="15.1" x2="55.3" y2="10.9" stroke="#f6a84c" stroke-width="1.35" stroke-opacity="0.41" marker-end="url(#arr-o)"/>
+          <line x1="44.7" y1="20.0" x2="56.2" y2="22.4" stroke="#f6a84c" stroke-width="1.35" stroke-opacity="0.41" marker-end="url(#arr-o)"/>
+          <line x1="71.1" y1="39.0" x2="78.6" y2="15.1" stroke="#f6a84c" stroke-width="1.35" stroke-opacity="0.41" marker-end="url(#arr-o)"/>
+          <line x1="78.6" y1="15.1" x2="71.1" y2="39.0" stroke="#f6a84c" stroke-width="1.35" stroke-opacity="0.41" marker-end="url(#arr-o)"/>
+          <line x1="55.3" y1="10.9" x2="55.7" y2="35.1" stroke="#f6a84c" stroke-width="1.35" stroke-opacity="0.41" marker-end="url(#arr-o)"/>
+          <line x1="55.7" y1="35.1" x2="45.4" y2="42.2" stroke="#f6a84c" stroke-width="1.35" stroke-opacity="0.41" marker-end="url(#arr-o)"/>
+          <line x1="56.2" y1="22.4" x2="73.1" y2="27.5" stroke="#f6a84c" stroke-width="1.22" stroke-opacity="0.38" marker-end="url(#arr-o)"/>
+          <line x1="56.2" y1="22.4" x2="63.9" y2="55.2" stroke="#f6a84c" stroke-width="1.22" stroke-opacity="0.38" marker-end="url(#arr-o)"/>
+          <line x1="55.7" y1="35.1" x2="56.2" y2="22.4" stroke="#f6a84c" stroke-width="1.22" stroke-opacity="0.38" marker-end="url(#arr-o)"/>
+          <line x1="63.9" y1="55.2" x2="56.2" y2="22.4" stroke="#f6a84c" stroke-width="1.22" stroke-opacity="0.38" marker-end="url(#arr-o)"/>
+          <line x1="56.2" y1="22.4" x2="55.7" y2="35.1" stroke="#f6a84c" stroke-width="1.22" stroke-opacity="0.38" marker-end="url(#arr-o)"/>
+          <line x1="78.6" y1="15.1" x2="56.2" y2="22.4" stroke="#f6a84c" stroke-width="1.22" stroke-opacity="0.38" marker-end="url(#arr-o)"/>
+          <line x1="71.1" y1="39.0" x2="63.9" y2="55.2" stroke="#f6a84c" stroke-width="1.22" stroke-opacity="0.38" marker-end="url(#arr-o)"/>
+          <line x1="55.7" y1="35.1" x2="44.7" y2="20.0" stroke="#f6a84c" stroke-width="1.22" stroke-opacity="0.38" marker-end="url(#arr-o)"/>
+          <line x1="71.1" y1="39.0" x2="55.7" y2="35.1" stroke="#f6a84c" stroke-width="1.08" stroke-opacity="0.35" marker-end="url(#arr-o)"/>
+          <line x1="63.9" y1="55.2" x2="55.7" y2="35.1" stroke="#f6a84c" stroke-width="1.08" stroke-opacity="0.35" marker-end="url(#arr-o)"/>
+          <line x1="73.1" y1="27.5" x2="56.2" y2="22.4" stroke="#f6a84c" stroke-width="1.08" stroke-opacity="0.35" marker-end="url(#arr-o)"/>
+          <line x1="78.6" y1="15.1" x2="73.1" y2="27.5" stroke="#f6a84c" stroke-width="1.08" stroke-opacity="0.35" marker-end="url(#arr-o)"/>
+          <line x1="12.5" y1="31.7" x2="44.7" y2="20.0" stroke="#f6a84c" stroke-width="1.08" stroke-opacity="0.35" marker-end="url(#arr-o)"/>
+          <line x1="12.5" y1="31.7" x2="45.4" y2="42.2" stroke="#f6a84c" stroke-width="1.08" stroke-opacity="0.35" marker-end="url(#arr-o)"/>
+          <line x1="71.1" y1="39.0" x2="56.2" y2="22.4" stroke="#f6a84c" stroke-width="1.08" stroke-opacity="0.35" marker-end="url(#arr-o)"/>
+          <line x1="44.7" y1="20.0" x2="73.1" y2="27.5" stroke="#f6a84c" stroke-width="1.08" stroke-opacity="0.35" marker-end="url(#arr-o)"/>
+          <line x1="56.2" y1="22.4" x2="44.7" y2="20.0" stroke="#f6a84c" stroke-width="1.08" stroke-opacity="0.35" marker-end="url(#arr-o)"/>
+          <line x1="45.4" y1="42.2" x2="71.1" y2="39.0" stroke="#f6a84c" stroke-width="1.08" stroke-opacity="0.35" marker-end="url(#arr-o)"/>
+          <line x1="55.7" y1="35.1" x2="63.9" y2="55.2" stroke="#f6a84c" stroke-width="0.95" stroke-opacity="0.32" marker-end="url(#arr-o)"/>
+          <line x1="71.1" y1="39.0" x2="73.1" y2="27.5" stroke="#f6a84c" stroke-width="0.95" stroke-opacity="0.32" marker-end="url(#arr-o)"/>
+          <line x1="63.9" y1="55.2" x2="73.1" y2="27.5" stroke="#f6a84c" stroke-width="0.95" stroke-opacity="0.32" marker-end="url(#arr-o)"/>
+          <line x1="71.1" y1="39.0" x2="45.4" y2="42.2" stroke="#f6a84c" stroke-width="0.95" stroke-opacity="0.32" marker-end="url(#arr-o)"/>
+          <line x1="73.1" y1="27.5" x2="78.6" y2="15.1" stroke="#f6a84c" stroke-width="0.95" stroke-opacity="0.32" marker-end="url(#arr-o)"/>
+          <line x1="44.7" y1="20.0" x2="71.1" y2="39.0" stroke="#f6a84c" stroke-width="0.81" stroke-opacity="0.29" marker-end="url(#arr-o)"/>
+          <line x1="73.1" y1="27.5" x2="63.9" y2="55.2" stroke="#f6a84c" stroke-width="0.81" stroke-opacity="0.29" marker-end="url(#arr-o)"/>
+          <line x1="73.1" y1="27.5" x2="71.1" y2="39.0" stroke="#f6a84c" stroke-width="0.81" stroke-opacity="0.29" marker-end="url(#arr-o)"/>
+          <line x1="45.4" y1="42.2" x2="72.6" y2="62.4" stroke="#f6a84c" stroke-width="0.81" stroke-opacity="0.29" marker-end="url(#arr-o)"/>
+          <line x1="72.6" y1="62.4" x2="45.4" y2="42.2" stroke="#f6a84c" stroke-width="0.81" stroke-opacity="0.29" marker-end="url(#arr-o)"/>
+          <line x1="45.4" y1="42.2" x2="55.7" y2="35.1" stroke="#f6a84c" stroke-width="0.81" stroke-opacity="0.29" marker-end="url(#arr-o)"/>
+          <line x1="55.3" y1="10.9" x2="63.9" y2="55.2" stroke="#f6a84c" stroke-width="0.81" stroke-opacity="0.29" marker-end="url(#arr-o)"/>
+          <line x1="63.9" y1="55.2" x2="12.5" y2="31.7" stroke="#f6a84c" stroke-width="0.81" stroke-opacity="0.29" marker-end="url(#arr-o)"/>
+          <line x1="72.6" y1="62.4" x2="71.1" y2="39.0" stroke="#f6a84c" stroke-width="0.81" stroke-opacity="0.29" marker-end="url(#arr-o)"/>
+          <line x1="55.7" y1="35.1" x2="73.1" y2="27.5" stroke="#f6a84c" stroke-width="0.81" stroke-opacity="0.29" marker-end="url(#arr-o)"/>
+          <line x1="55.7" y1="35.1" x2="55.3" y2="10.9" stroke="#f6a84c" stroke-width="0.81" stroke-opacity="0.29" marker-end="url(#arr-o)"/>
+          </g>
+          <g id="circles">
+          <circle cx="78.6" cy="15.1" r="3.8" fill="#f6a84c" fill-opacity="0.93" stroke="white" stroke-width="0.7"/>
+          <text x="78.6" y="15.1" text-anchor="middle" dominant-baseline="middle" font-size="2.0" fill="white" font-weight="bold" font-family="monospace" paint-order="stroke" stroke="#0d1a10" stroke-width="0.9">37</text>
+          <circle cx="73.1" cy="27.5" r="3.66" fill="#f6a84c" fill-opacity="0.93" stroke="white" stroke-width="0.7"/>
+          <text x="73.1" y="27.5" text-anchor="middle" dominant-baseline="middle" font-size="2.0" fill="white" font-weight="bold" font-family="monospace" paint-order="stroke" stroke="#0d1a10" stroke-width="0.9">32</text>
+          <circle cx="44.7" cy="20.0" r="4.23" fill="#f6a84c" fill-opacity="0.93" stroke="white" stroke-width="0.7"/>
+          <text x="44.7" y="20.0" text-anchor="middle" dominant-baseline="middle" font-size="2.2" fill="white" font-weight="bold" font-family="monospace" paint-order="stroke" stroke="#0d1a10" stroke-width="0.9">53</text>
+          <circle cx="56.2" cy="22.4" r="5.42" fill="#f6a84c" fill-opacity="0.93" stroke="white" stroke-width="0.7"/>
+          <text x="56.2" y="22.4" text-anchor="middle" dominant-baseline="middle" font-size="2.8" fill="white" font-weight="bold" font-family="monospace" paint-order="stroke" stroke="#0d1a10" stroke-width="0.9">97</text>
+          <circle cx="45.4" cy="42.2" r="5.5" fill="#f6a84c" fill-opacity="0.93" stroke="white" stroke-width="0.7"/>
+          <text x="45.4" y="42.2" text-anchor="middle" dominant-baseline="middle" font-size="2.9" fill="white" font-weight="bold" font-family="monospace" paint-order="stroke" stroke="#0d1a10" stroke-width="0.9">100</text>
+          <circle cx="55.3" cy="10.9" r="4.12" fill="#f6a84c" fill-opacity="0.93" stroke="white" stroke-width="0.7"/>
+          <text x="55.3" y="10.9" text-anchor="middle" dominant-baseline="middle" font-size="2.1" fill="white" font-weight="bold" font-family="monospace" paint-order="stroke" stroke="#0d1a10" stroke-width="0.9">49</text>
+          <circle cx="71.1" cy="39.0" r="4.28" fill="#f6a84c" fill-opacity="0.93" stroke="white" stroke-width="0.7"/>
+          <text x="71.1" y="39.0" text-anchor="middle" dominant-baseline="middle" font-size="2.2" fill="white" font-weight="bold" font-family="monospace" paint-order="stroke" stroke="#0d1a10" stroke-width="0.9">55</text>
+          <circle cx="12.5" cy="31.7" r="3.45" fill="#f6a84c" fill-opacity="0.93" stroke="white" stroke-width="0.7"/>
+          <text x="12.5" y="31.7" text-anchor="middle" dominant-baseline="middle" font-size="2.0" fill="white" font-weight="bold" font-family="monospace" paint-order="stroke" stroke="#0d1a10" stroke-width="0.9">24</text>
+          <circle cx="72.6" cy="62.4" r="3.29" fill="#f6a84c" fill-opacity="0.93" stroke="white" stroke-width="0.7"/>
+          <text x="72.6" y="62.4" text-anchor="middle" dominant-baseline="middle" font-size="2.0" fill="white" font-weight="bold" font-family="monospace" paint-order="stroke" stroke="#0d1a10" stroke-width="0.9">18</text>
+          <circle cx="63.9" cy="55.2" r="5.5" fill="#f6a84c" fill-opacity="0.93" stroke="white" stroke-width="0.7"/>
+          <text x="63.9" y="55.2" text-anchor="middle" dominant-baseline="middle" font-size="2.9" fill="white" font-weight="bold" font-family="monospace" paint-order="stroke" stroke="#0d1a10" stroke-width="0.9">100</text>
+          <circle cx="55.7" cy="35.1" r="3.99" fill="#f6a84c" fill-opacity="0.93" stroke="white" stroke-width="0.7"/>
+          <text x="55.7" y="35.1" text-anchor="middle" dominant-baseline="middle" font-size="2.1" fill="white" font-weight="bold" font-family="monospace" paint-order="stroke" stroke="#0d1a10" stroke-width="0.9">44</text>
+          </g>
+          <g id="labels">
+          <rect x="74.6" y="7.7" width="7.9" height="3.0" fill="#0d1117" fill-opacity="0.94" rx="0.4" stroke="#3a4a5a" stroke-width="0.3"/>
+          <text x="78.6" y="9.7" text-anchor="middle" font-size="2.05" fill="white" font-weight="bold" font-family="monospace">Ansu Fati</text>
+          <rect x="65.7" y="20.2" width="14.8" height="3.0" fill="#0d1117" fill-opacity="0.94" rx="0.4" stroke="#3a4a5a" stroke-width="0.3"/>
+          <text x="73.1" y="22.2" text-anchor="middle" font-size="2.05" fill="white" font-weight="bold" font-family="monospace">Griezmann</text>
+          <rect x="38.6" y="12.2" width="12.1" height="3.0" fill="#0d1117" fill-opacity="0.94" rx="0.4" stroke="#3a4a5a" stroke-width="0.3"/>
+          <text x="44.7" y="14.1" text-anchor="middle" font-size="2.05" fill="white" font-weight="bold" font-family="monospace">Lenglet</text>
+          <rect x="48.1" y="13.4" width="16.2" height="3.0" fill="#0d1117" fill-opacity="0.94" rx="0.4" stroke="#3a4a5a" stroke-width="0.3"/>
+          <text x="56.2" y="15.4" text-anchor="middle" font-size="2.05" fill="white" font-weight="bold" font-family="monospace">F. de Jong</text>
+          <rect x="38.7" y="33.1" width="13.4" height="3.0" fill="#0d1117" fill-opacity="0.94" rx="0.4" stroke="#3a4a5a" stroke-width="0.3"/>
+          <text x="45.4" y="35.1" text-anchor="middle" font-size="2.05" fill="white" font-weight="bold" font-family="monospace">G. Piqué</text>
+          <rect x="49.3" y="3.2" width="12.1" height="3.0" fill="#0d1117" fill-opacity="0.94" rx="0.4" stroke="#3a4a5a" stroke-width="0.3"/>
+          <text x="55.3" y="5.2" text-anchor="middle" font-size="2.05" fill="white" font-weight="bold" font-family="monospace">J. Alba</text>
+          <rect x="64.4" y="31.2" width="13.4" height="3.0" fill="#0d1117" fill-opacity="0.94" rx="0.4" stroke="#3a4a5a" stroke-width="0.3"/>
+          <text x="71.1" y="33.1" text-anchor="middle" font-size="2.05" fill="white" font-weight="bold" font-family="monospace">L. Messi</text>
+          <rect x="8.5" y="24.7" width="7.9" height="3.0" fill="#0d1117" fill-opacity="0.94" rx="0.4" stroke="#3a4a5a" stroke-width="0.3"/>
+          <text x="12.5" y="26.6" text-anchor="middle" font-size="2.05" fill="white" font-weight="bold" font-family="monospace">Neto</text>
+          <rect x="64.5" y="55.5" width="16.2" height="3.0" fill="#0d1117" fill-opacity="0.94" rx="0.4" stroke="#3a4a5a" stroke-width="0.3"/>
+          <text x="72.6" y="57.5" text-anchor="middle" font-size="2.05" fill="white" font-weight="bold" font-family="monospace">O. Dembélé</text>
+          <rect x="55.8" y="46.1" width="16.2" height="3.0" fill="#0d1117" fill-opacity="0.94" rx="0.4" stroke="#3a4a5a" stroke-width="0.3"/>
+          <text x="63.9" y="48.1" text-anchor="middle" font-size="2.05" fill="white" font-weight="bold" font-family="monospace">S. Roberto</text>
+          <rect x="49.0" y="27.5" width="13.4" height="3.0" fill="#0d1117" fill-opacity="0.94" rx="0.4" stroke="#3a4a5a" stroke-width="0.3"/>
+          <text x="55.7" y="29.5" text-anchor="middle" font-size="2.05" fill="white" font-weight="bold" font-family="monospace">Busquets</text>
+          </g>
+        </svg>
+      </div>
+    </div>
+
+    <div class="insight-grid">
+      <div class="insight-card">
+        <div class="insight-icon">🕸️</div>
+        <div class="insight-title">Structure Barça</div>
+        <div class="insight-text">Réseau <strong>ultra-dense (0.555)</strong> avec de nombreuses liaisons redondantes. Chaque joueur connecté à quasiment tous ses partenaires — jeu de possession triangulaire.</div>
+      </div>
+      <div class="insight-card">
+        <div class="insight-icon">🔒</div>
+        <div class="insight-title">Structure Alavés</div>
+        <div class="insight-text">Réseau <strong>compact (0.155)</strong> avec peu de connexions. Jeu en blocs verticaux directs, dépendance aux couloirs — typique d'une équipe défensive.</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- CENTRALITÉ -->
+<section id="centralite">
+  <div class="container">
+    <div class="section-header">
+      <span class="section-tag">Centrality — Key Hubs</span>
+      <div class="section-line"></div>
+    </div>
+
+    <div class="centrality-grid">
+      <!-- ALAVES -->
+      <div>
+        <div style="font-family:var(--font-mono);font-size:11px;color:var(--teal);letter-spacing:2px;text-transform:uppercase;margin-bottom:20px;">Deportivo Alavés</div>
+
+        <div class="player-row">
+          <div class="player-rank">01</div>
+          <div class="player-name-cell">
+            <div class="player-name-txt">J. Navarro Jiménez</div>
+            <div class="player-pos">Central / Relayeur</div>
+          </div>
+          <div class="bc-bar-wrap">
+            <div class="bc-bar-bg"><div class="bc-bar-fill" style="width:100%;background:var(--teal);"></div></div>
+            <div class="bc-val teal">0.322</div>
+          </div>
+        </div>
+
+        <div class="player-row">
+          <div class="player-rank">02</div>
+          <div class="player-name-cell">
+            <div class="player-name-txt">E. Méndez Ortega</div>
+            <div class="player-pos">Milieu</div>
+          </div>
+          <div class="bc-bar-wrap">
+            <div class="bc-bar-bg"><div class="bc-bar-fill" style="width:91%;background:var(--teal);"></div></div>
+            <div class="bc-val teal">0.294</div>
+          </div>
+        </div>
+
+        <div class="player-row">
+          <div class="player-rank">03</div>
+          <div class="player-name-cell">
+            <div class="player-name-txt">J.I. Peleteiro</div>
+            <div class="player-pos">Milieu offensif</div>
+          </div>
+          <div class="bc-bar-wrap">
+            <div class="bc-bar-bg"><div class="bc-bar-fill" style="width:45%;background:var(--teal);"></div></div>
+            <div class="bc-val teal">0.144</div>
+          </div>
+        </div>
+
+        <div class="player-row">
+          <div class="player-rank">04</div>
+          <div class="player-name-cell">
+            <div class="player-name-txt">R. Battaglia</div>
+            <div class="player-pos">Milieu défensif</div>
+          </div>
+          <div class="bc-bar-wrap">
+            <div class="bc-bar-bg"><div class="bc-bar-fill" style="width:38%;background:var(--teal);"></div></div>
+            <div class="bc-val teal">0.121</div>
+          </div>
+        </div>
+
+        <div class="player-row">
+          <div class="player-rank">05</div>
+          <div class="player-name-cell">
+            <div class="player-name-txt">R. Duarte</div>
+            <div class="player-pos">Latéral gauche</div>
+          </div>
+          <div class="bc-bar-wrap">
+            <div class="bc-bar-bg"><div class="bc-bar-fill" style="width:22%;background:var(--teal);"></div></div>
+            <div class="bc-val teal">0.072</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- BARÇA -->
+      <div>
+        <div style="font-family:var(--font-mono);font-size:11px;color:var(--orange);letter-spacing:2px;text-transform:uppercase;margin-bottom:20px;">Barcelona</div>
+
+        <div class="player-row">
+          <div class="player-rank">01</div>
+          <div class="player-name-cell">
+            <div class="player-name-txt">G. Piqué</div>
+            <div class="player-pos">Défenseur central</div>
+          </div>
+          <div class="bc-bar-wrap">
+            <div class="bc-bar-bg"><div class="bc-bar-fill" style="width:100%;background:var(--orange);"></div></div>
+            <div class="bc-val orange">0.167</div>
+          </div>
+        </div>
+
+        <div class="player-row">
+          <div class="player-rank">02</div>
+          <div class="player-name-cell">
+            <div class="player-name-txt">S. Busquets</div>
+            <div class="player-pos">Pivot</div>
+          </div>
+          <div class="bc-bar-wrap">
+            <div class="bc-bar-bg"><div class="bc-bar-fill" style="width:91%;background:var(--orange);"></div></div>
+            <div class="bc-val orange">0.152</div>
+          </div>
+        </div>
+
+        <div class="player-row">
+          <div class="player-rank">03</div>
+          <div class="player-name-cell">
+            <div class="player-name-txt">S. Roberto</div>
+            <div class="player-pos">Latéral droit</div>
+          </div>
+          <div class="bc-bar-wrap">
+            <div class="bc-bar-bg"><div class="bc-bar-fill" style="width:89%;background:var(--orange);"></div></div>
+            <div class="bc-val orange">0.148</div>
+          </div>
+        </div>
+
+        <div class="player-row">
+          <div class="player-rank">04</div>
+          <div class="player-name-cell">
+            <div class="player-name-txt">F. de Jong</div>
+            <div class="player-pos">Milieu box-to-box</div>
+          </div>
+          <div class="bc-bar-wrap">
+            <div class="bc-bar-bg"><div class="bc-bar-fill" style="width:72%;background:var(--orange);"></div></div>
+            <div class="bc-val orange">0.120</div>
+          </div>
+        </div>
+
+        <div class="player-row">
+          <div class="player-rank">05</div>
+          <div class="player-name-cell">
+            <div class="player-name-txt">Lenglet</div>
+            <div class="player-pos">Défenseur central</div>
+          </div>
+          <div class="bc-bar-wrap">
+            <div class="bc-bar-bg"><div class="bc-bar-fill" style="width:60%;background:var(--orange);"></div></div>
+            <div class="bc-val orange">0.100</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div style="margin-top:32px;" class="insight-grid">
+      <div class="insight-card">
+        <div class="insight-title">🔍 Key Finding</div>
+        <div class="insight-text">
+          Chez Alavés, <strong>Navarro Jiménez (BC=0.322)</strong> est le pivot central du jeu — retirer ce joueur briserait 32% des chemins de passes. Forte dépendance individuelle.
+        </div>
+      </div>
+      <div class="insight-card">
+        <div class="insight-title">🔍 Key Finding</div>
+        <div class="insight-text">
+          Chez Barça, la centralité est <strong>distribuée</strong> entre Piqué (0.167), Busquets (0.152) et S.Roberto (0.148) — clustering 0.726. Système résilient avec redondances.
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- COMPARAISON -->
+<section id="comparaison">
+  <div class="container">
+    <div class="section-header">
+      <span class="section-tag">Structural Comparison</span>
+      <div class="section-line"></div>
+    </div>
+
+    <table class="compare-table">
+      <tbody>
+        <tr>
+          <td class="compare-metric-name">Total passes</td>
+          <td class="compare-bar-cell">
+            <div class="dual-bar">
+              <div class="bar-row">
+                <span class="bar-team" style="color:var(--teal)">Alavés</span>
+                <div class="bar-track"><div class="bar-fill teal" style="width:22%"></div></div>
+                <span style="font-family:var(--font-mono);font-size:11px;color:var(--teal);width:40px;text-align:right">136</span>
+              </div>
+              <div class="bar-row">
+                <span class="bar-team" style="color:var(--orange)">Barça</span>
+                <div class="bar-track"><div class="bar-fill orange" style="width:100%"></div></div>
+                <span style="font-family:var(--font-mono);font-size:11px;color:var(--orange);width:40px;text-align:right">609</span>
+              </div>
+            </div>
+          </td>
+        </tr>
+        <tr>
+          <td class="compare-metric-name">Density</td>
+          <td class="compare-bar-cell">
+            <div class="dual-bar">
+              <div class="bar-row">
+                <span class="bar-team" style="color:var(--teal)">Alavés</span>
+                <div class="bar-track"><div class="bar-fill teal" style="width:28%"></div></div>
+                <span style="font-family:var(--font-mono);font-size:11px;color:var(--teal);width:40px;text-align:right">0.155</span>
+              </div>
+              <div class="bar-row">
+                <span class="bar-team" style="color:var(--orange)">Barça</span>
+                <div class="bar-track"><div class="bar-fill orange" style="width:100%"></div></div>
+                <span style="font-family:var(--font-mono);font-size:11px;color:var(--orange);width:40px;text-align:right">0.555</span>
+              </div>
+            </div>
+          </td>
+        </tr>
+        <tr>
+          <td class="compare-metric-name">Avg Clustering</td>
+          <td class="compare-bar-cell">
+            <div class="dual-bar">
+              <div class="bar-row">
+                <span class="bar-team" style="color:var(--teal)">Alavés</span>
+                <div class="bar-track"><div class="bar-fill teal" style="width:13%"></div></div>
+                <span style="font-family:var(--font-mono);font-size:11px;color:var(--teal);width:40px;text-align:right">0.091</span>
+              </div>
+              <div class="bar-row">
+                <span class="bar-team" style="color:var(--orange)">Barça</span>
+                <div class="bar-track"><div class="bar-fill orange" style="width:100%"></div></div>
+                <span style="font-family:var(--font-mono);font-size:11px;color:var(--orange);width:40px;text-align:right">0.726</span>
+              </div>
+            </div>
+          </td>
+        </tr>
+        <tr>
+          <td class="compare-metric-name">Centralization</td>
+          <td class="compare-bar-cell">
+            <div class="dual-bar">
+              <div class="bar-row">
+                <span class="bar-team" style="color:var(--teal)">Alavés</span>
+                <div class="bar-track"><div class="bar-fill teal" style="width:100%"></div></div>
+                <span style="font-family:var(--font-mono);font-size:11px;color:var(--teal);width:40px;text-align:right">22.2%</span>
+              </div>
+              <div class="bar-row">
+                <span class="bar-team" style="color:var(--orange)">Barça</span>
+                <div class="bar-track"><div class="bar-fill orange" style="width:39%"></div></div>
+                <span style="font-family:var(--font-mono);font-size:11px;color:var(--orange);width:40px;text-align:right">8.6%</span>
+              </div>
+            </div>
+          </td>
+        </tr>
+        <tr>
+          <td class="compare-metric-name">Passes / Link</td>
+          <td class="compare-bar-cell">
+            <div class="dual-bar">
+              <div class="bar-row">
+                <span class="bar-team" style="color:var(--teal)">Alavés</span>
+                <div class="bar-track"><div class="bar-fill teal" style="width:50%"></div></div>
+                <span style="font-family:var(--font-mono);font-size:11px;color:var(--teal);width:40px;text-align:right">3.6</span>
+              </div>
+              <div class="bar-row">
+                <span class="bar-team" style="color:var(--orange)">Barça</span>
+                <div class="bar-track"><div class="bar-fill orange" style="width:100%"></div></div>
+                <span style="font-family:var(--font-mono);font-size:11px;color:var(--orange);width:40px;text-align:right">7.2</span>
+              </div>
+            </div>
+          </td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+</section>
+
+<!-- STACK -->
+<section style="border-bottom: none; padding-bottom: 48px;">
+  <div class="container">
+    <div class="section-header">
+      <span class="section-tag">Tech Stack</span>
+      <div class="section-line"></div>
+    </div>
+    <div style="font-family:var(--font-mono);font-size:12px;color:var(--muted);line-height:1.9;max-width:640px;">
+      <strong style="color:var(--text)">Data:</strong> StatsBomb Open Data (Python SDK statsbombpy) · FBref (via pandas / soccerdata)<br/>
+      <strong style="color:var(--text)">Visualisation:</strong> mplsoccer · Plotly · matplotlib<br/>
+      <strong style="color:var(--text)">Graphs:</strong> NetworkX (betweenness, clustering, density)<br/>
+      <strong style="color:var(--text)">Dashboard:</strong> Streamlit · <code>app.py</code> — déployable sur Streamlit Cloud<br/>
+      <strong style="color:var(--text)">Module:</strong> <code>pass_network.py</code> — API réutilisable avec <code>PassNetworkAnalyzer</code><br/>
+      <strong style="color:var(--text)">Notebook:</strong> <code>pass_network_analysis.ipynb</code> — pipeline complet annoté
+    </div>
+    <div class="stack-pills">
+      <span class="stack-pill">Python 3.12</span>
+      <span class="stack-pill">statsbombpy</span>
+      <span class="stack-pill">mplsoccer</span>
+      <span class="stack-pill">NetworkX</span>
+      <span class="stack-pill">pandas</span>
+      <span class="stack-pill">Streamlit</span>
+      <span class="stack-pill">matplotlib</span>
+      <span class="stack-pill">Plotly</span>
+      <span class="stack-pill">Jupyter</span>
+      <span class="stack-pill">Git</span>
+    </div>
+  </div>
+</section>
+
+<!-- FOOTER -->
+<footer>
+  <div class="container">
+    <div class="footer-inner">
+      <div class="footer-left">
+        <strong style="color:var(--text)">Julie Landrevie</strong> — Football Data &amp; Video Analyst<br/>
+        Certified: Sports Analytics (Michigan) · Analyse Vidéo &amp; Data (Lorraine) · Dartfish Analyst
+      </div>
+      <div class="footer-links">
+        <a href="mailto:julie.landrevie@free.fr">✉ Contact</a>
+        <a href="#">GitHub</a>
+        <a href="#">LinkedIn</a>
+      </div>
+    </div>
+  </div>
+</footer>
+
+</body>
+</html>
