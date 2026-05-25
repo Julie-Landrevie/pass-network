@@ -4,6 +4,16 @@
 
 Analyse des réseaux de passes, identification des joueurs-pivots et comparaison de la structure tactique de deux équipes à partir des données **StatsBomb Open Data**.
 
+[![Streamlit App](https://static.streamlit.io/badges/streamlit_badge_black_white.svg)](https://pass-network.streamlit.app)
+
+---
+
+## 🌐 Demo live
+
+**[pass-network.streamlit.app](https://pass-network.streamlit.app)**
+
+Sélectionne une compétition, un match et une période — le réseau de passes se génère en temps réel depuis les données StatsBomb Open Data.
+
 ---
 
 ## 🗂️ Structure du projet
@@ -39,31 +49,32 @@ pass-network/
 
 ## 🚀 Lancement rapide
 
-### 1. Installation
+### Option 1 — App en ligne
+
+👉 **[pass-network.streamlit.app](https://pass-network.streamlit.app)** — aucune installation requise.
+
+### Option 2 — En local
 
 ```bash
 # Cloner le repo
-git clone https://github.com/ton-username/pass-network.git
+git clone https://github.com/Julie-Landrevie/pass-network.git
 cd pass-network
 
-# Créer un environnement virtuel (recommandé)
-python -m venv .venv
+# Environnement virtuel
+python3 -m venv .venv
 source .venv/bin/activate        # Mac / Linux
 .venv\Scripts\activate           # Windows
 
-# Installer les dépendances
+# Dépendances
 pip install -r requirements.txt
-```
 
-### 2. Dashboard Streamlit
-
-```bash
-streamlit run app.py
+# Lancer le dashboard
+python3 -m streamlit run app.py
 ```
 
 Ouvre automatiquement `http://localhost:8501`
 
-### 3. Module Python
+### Option 3 — Module Python
 
 ```python
 from src.pass_network import PassNetworkAnalyzer, quick_analysis
@@ -73,20 +84,20 @@ analyzer = quick_analysis(competition_id=11, season_id=90, match_index=0)
 print(analyzer.summary())
 analyzer.plot_all(save_dir='data/exports/')
 
-# Ou usage détaillé
+# Usage détaillé
 analyzer = PassNetworkAnalyzer(match_id=3773386, min_passes=3, period='Full Match')
 analyzer.run()
 analyzer.plot_network('Barcelona')
 analyzer.export('data/exports/')
 ```
 
-### 4. Notebook Jupyter
+### Option 4 — Notebook Jupyter
 
 ```bash
 jupyter notebook notebooks/pass_network_analysis.ipynb
 ```
 
-### 5. Tests
+### Tests
 
 ```bash
 pytest tests/ -v
@@ -106,6 +117,8 @@ pytest tests/ -v
 | Filtre 1ère / 2ème mi-temps | ✅ | ✅ | ✅ |
 | Export CSV | — | ✅ | ✅ |
 | Interprétation tactique auto | ✅ | — | — |
+| Anti-collision labels | ✅ | ✅ | ✅ |
+| 200+ joueurs mappés | ✅ | ✅ | ✅ |
 
 ---
 
@@ -114,8 +127,8 @@ pytest tests/ -v
 - **Données** : StatsBomb Open Data (`statsbombpy`)
 - **Visualisation** : `mplsoccer`, `matplotlib`, `Plotly`
 - **Graphes** : `NetworkX` (betweenness, density, clustering)
-- **Dashboard** : `Streamlit`
-- **Tests** : `pytest`
+- **Dashboard** : `Streamlit` — déployé sur Streamlit Cloud
+- **Tests** : `pytest` (18 tests unitaires)
 
 ---
 
