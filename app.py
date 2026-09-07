@@ -596,27 +596,9 @@ def plot_pass_network(nodes, edges, team_name, period_label, title_suffix=''):
     # Dessiner dans l'ordre : cercles, chiffres, labels
     for ni in nlist:
         p = ni['p']
-        size = 800 + 2200 * (ni['r'] / max(_r(nd['pass_count']) for _, nd in nodes.iterrows()))
-        ax.scatter(ni['nx'], ni['ny'],
-                   s=800 + 2200 * (nodes[nodes['player']==p]['pass_count'].values[0] / max_passes),
-                   c=ACCENT, zorder=5, alpha=0.92,
-                   linewidths=2.5, edgecolors='white')
-
-    from matplotlib.patheffects import withStroke
-    for ni in nlist:
-        p = ni['p']
-        pc = nodes[nodes['player']==p]['pass_count'].values[0]
-        ax.text(ni['nx'], ni['ny'], str(int(pc)),
-                color='white', fontsize=8.5, fontweight='bold',
-                ha='center', va='center', zorder=6,
-                fontfamily='DejaVu Sans',
-                path_effects=[withStroke(linewidth=2.5, foreground='#0a0e1a')])
-
-    for ni in nlist:
-        p     = ni['p']
         short = clean_name(p)
-        lx    = max(1.0, min(119.0, lpos[p][0]))
-        ly    = max(1.0, min(79.0,  lpos[p][1]))
+        lx = max(1.0, min(119.0, lpos[p][0]))
+        ly = max(1.0, min(79.0, lpos[p][1]))
         ax.text(lx, ly, short,
                 color='#ffffff', fontsize=7.5, fontweight='bold',
                 ha='center', va='center', zorder=10,
