@@ -153,7 +153,7 @@ Compétitions accessibles gratuitement (sélection) :
 - Sports Analytics — University of Michigan (Coursera)
 - Analyse Vidéo et Data dans le Sport — Université de Lorraine
 - Dartfish Certified Analyst
-
+- Once Sport Certified Analyst
 ---
 
 ## 📩 Contact
