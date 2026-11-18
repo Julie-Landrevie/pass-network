@@ -9,7 +9,7 @@ import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
 import matplotlib.patches as mpatches
-from matplotlib.colors import to_rgba
+from matplotlib.colors import to_rgba, LinearSegmentedColormap
 import networkx as nx
 from mplsoccer import Pitch, VerticalPitch
 from statsbombpy import sb
@@ -470,11 +470,14 @@ DARK_BG = '#0a0e1a'
 PITCH_LINE = '#2d3748'
 ACCENT = '#4fd1c5'
 ACCENT2 = '#f6ad55'
+# Couleurs des équipes, utilisées dans toutes les sections
+HOME_COLOR = '#3b82f6'   # bleu : équipe à domicile
+AWAY_COLOR = '#facc15'   # jaune : équipe à l'extérieur
 NODE_COLOR = '#4fd1c5'
 EDGE_COLOR = '#4fd1c5'
 
 
-def plot_pass_network(nodes, edges, team_name, period_label, title_suffix=''):
+def plot_pass_network(nodes, edges, team_name, period_label, title_suffix='', color=ACCENT):
     pitch = Pitch(
         pitch_type='statsbomb',
         pitch_color=DARK_BG,
@@ -507,7 +510,7 @@ def plot_pass_network(nodes, edges, team_name, period_label, title_suffix=''):
         lw = 0.5 + 4.5 * (edge['count'] / max_edge)
         ax.annotate('', xy=(x_end, y_end), xytext=(x_start, y_start),
                     arrowprops=dict(
-                        arrowstyle='->', color=to_rgba(ACCENT, alpha),
+                        arrowstyle='->', color=to_rgba(color, alpha),
                         lw=lw, connectionstyle='arc3,rad=0.05'
                     ))
 
@@ -517,7 +520,7 @@ def plot_pass_network(nodes, edges, team_name, period_label, title_suffix=''):
     for _, node in nodes.iterrows():
         size = 800 + 2200 * (node['pass_count'] / max_passes)
         ax.scatter(node['avg_x'], node['avg_y'],
-                   s=size, c=ACCENT, zorder=5, alpha=0.92,
+                   s=size, c=color, zorder=5, alpha=0.92,
                    linewidths=2.5, edgecolors='white')
 
     # ── Couche 2 : chiffres de passes (zorder=6)
@@ -610,7 +613,7 @@ def plot_pass_network(nodes, edges, team_name, period_label, title_suffix=''):
     return fig
 
 
-def plot_heatmap(events, team_name, period_filter='Full Match'):
+def plot_heatmap(events, team_name, period_filter='Full Match', color=ACCENT):
     """Average position heatmap for the team."""
     passes = events[(events['type'] == 'Pass') & (events['team'] == team_name)].copy()
     if period_filter == '1st Half':
@@ -633,8 +636,9 @@ def plot_heatmap(events, team_name, period_filter='Full Match'):
     ax.set_facecolor(DARK_BG)
 
     if not passes.empty:
+        team_cmap = LinearSegmentedColormap.from_list('team', [DARK_BG, color, '#ffffff'])
         pitch.kdeplot(passes['x'], passes['y'], ax=ax,
-                     cmap='YlOrRd', fill=True, levels=100,
+                     cmap=team_cmap, fill=True, levels=100,
                      alpha=0.75, bw_adjust=0.7)
 
     ax.set_title(f'{team_name}  |  Passing Heatmap  |  {period_filter}',
@@ -644,7 +648,7 @@ def plot_heatmap(events, team_name, period_filter='Full Match'):
     return fig
 
 
-def plot_centrality_bar(nodes, team_name):
+def plot_centrality_bar(nodes, team_name, color=ACCENT):
     """Horizontal bar chart of betweenness centrality."""
     if nodes.empty or 'betweenness' not in nodes.columns:
         return None
@@ -656,7 +660,7 @@ def plot_centrality_bar(nodes, team_name):
     fig.patch.set_facecolor(DARK_BG)
     ax.set_facecolor(DARK_BG)
 
-    colors = [ACCENT if v == df['betweenness'].max() else '#2d4a5a' for v in df['betweenness']]
+    colors = [color if v == df['betweenness'].max() else to_rgba(color, 0.35) for v in df['betweenness']]
     bars = ax.barh(df['short'], df['betweenness'], color=colors, height=0.6)
 
     for bar, val in zip(bars, df['betweenness']):
@@ -677,7 +681,7 @@ def plot_centrality_bar(nodes, team_name):
     return fig
 
 
-def plot_comparison(metrics1, metrics2, team1, team2):
+def plot_comparison(metrics1, metrics2, team1, team2, color1=HOME_COLOR, color2=AWAY_COLOR):
     """Radar-style comparison of team metrics."""
     labels = ['Density', 'Clustering', 'Centralization\n(inverted)', 'Avg Link\nPasses', 'Connections']
     
@@ -700,8 +704,8 @@ def plot_comparison(metrics1, metrics2, team1, team2):
     fig.patch.set_facecolor(DARK_BG)
     ax.set_facecolor(DARK_BG)
 
-    b1 = ax.bar(x - width / 2, v1, width, label=team1, color=ACCENT, alpha=0.85)
-    b2 = ax.bar(x + width / 2, v2, width, label=team2, color=ACCENT2, alpha=0.85)
+    b1 = ax.bar(x - width / 2, v1, width, label=team1, color=color1, alpha=0.85)
+    b2 = ax.bar(x + width / 2, v2, width, label=team2, color=color2, alpha=0.85)
 
     ax.set_xticks(x)
     ax.set_xticklabels(labels, color='#a0aec0', fontsize=9)
@@ -785,9 +789,11 @@ with st.spinner("Loading events…"):
     events = load_events(match_id)
     lineups = load_lineups(match_id)
 
+# Équipe 1 = domicile (bleu), équipe 2 = extérieur (jaune)
+_mrow = matches[matches['match_id'] == match_id].iloc[0]
 teams = events['team'].unique().tolist()
-team1 = teams[0]
-team2 = teams[1]
+team1 = _mrow['home_team'] if _mrow['home_team'] in teams else teams[0]
+team2 = _mrow['away_team'] if _mrow['away_team'] in teams else [t for t in teams if t != team1][0]
 
 # Build networks
 nodes1, edges1 = build_pass_network(events, team1, period_filter)
@@ -815,9 +821,9 @@ st.markdown(f"""
         <div class="hero-sub" style='margin-top: 8px;'>StatsBomb Open Data · {selected_comp_label}</div>
     </div>
     <div style='text-align: right; font-family: Syne, sans-serif;'>
-        <div style='font-size: 14px; color: #718096; font-weight: 600;'>{home}</div>
-        <div style='font-size: 42px; font-weight: 800; color: #4fd1c5; line-height: 1;'>{score}</div>
-        <div style='font-size: 14px; color: #718096; font-weight: 600;'>{away}</div>
+        <div style='font-size: 14px; color: {HOME_COLOR}; font-weight: 700;'>{home}</div>
+        <div style='font-size: 42px; font-weight: 800; color: #e8eaf0; line-height: 1;'>{score}</div>
+        <div style='font-size: 14px; color: {AWAY_COLOR}; font-weight: 700;'>{away}</div>
         <div style='font-family: 'DM Mono', monospace; font-size: 11px; color: #4a5568; margin-top: 6px;'>
             {period_filter}
         </div>
@@ -830,11 +836,11 @@ st.markdown(f"""
 
 st.markdown('<div class="section-header">📊 Structure Metrics</div>', unsafe_allow_html=True)
 
-def metric_card(label, value, sub=''):
+def metric_card(label, value, sub='', color=ACCENT):
     return f"""
-    <div class="metric-card">
+    <div class="metric-card" style="border-top:3px solid {color}">
         <div class="metric-label">{label}</div>
-        <div class="metric-value">{value}</div>
+        <div class="metric-value" style="color:{color}">{value}</div>
         {'<div class="metric-sub">'+sub+'</div>' if sub else ''}
     </div>
     """
@@ -842,29 +848,29 @@ def metric_card(label, value, sub=''):
 col_t1, col_sep, col_t2 = st.columns([5, 1, 5])
 
 with col_t1:
-    st.markdown(f"<div style='font-family: 'DM Mono', monospace;font-size:12px;color:#4fd1c5;text-align:center;font-weight:700;margin-bottom:12px;'>{team1}</div>", unsafe_allow_html=True)
+    st.markdown(f"<div style='font-family: 'DM Mono', monospace;font-size:12px;color:{HOME_COLOR};text-align:center;font-weight:700;margin-bottom:12px;'>{team1}</div>", unsafe_allow_html=True)
     c1, c2, c3 = st.columns(3)
-    with c1: st.markdown(metric_card('Total Passes', metrics1.get('total_passes', '—')), unsafe_allow_html=True)
-    with c2: st.markdown(metric_card('Connections', metrics1.get('connections', '—')), unsafe_allow_html=True)
-    with c3: st.markdown(metric_card('Density', f"{metrics1.get('density', 0):.2f}"), unsafe_allow_html=True)
+    with c1: st.markdown(metric_card('Total Passes', metrics1.get('total_passes', '—'), color=HOME_COLOR), unsafe_allow_html=True)
+    with c2: st.markdown(metric_card('Connections', metrics1.get('connections', '—'), color=HOME_COLOR), unsafe_allow_html=True)
+    with c3: st.markdown(metric_card('Density', f"{metrics1.get('density', 0):.2f}", color=HOME_COLOR), unsafe_allow_html=True)
     c4, c5, c6 = st.columns(3)
-    with c4: st.markdown(metric_card('Clustering', f"{metrics1.get('clustering', 0):.2f}"), unsafe_allow_html=True)
-    with c5: st.markdown(metric_card('Centralization', f"{metrics1.get('centralization', 0):.1f}%"), unsafe_allow_html=True)
-    with c6: st.markdown(metric_card('Passes/Link', f"{metrics1.get('avg_link_passes', 0):.1f}"), unsafe_allow_html=True)
+    with c4: st.markdown(metric_card('Clustering', f"{metrics1.get('clustering', 0):.2f}", color=HOME_COLOR), unsafe_allow_html=True)
+    with c5: st.markdown(metric_card('Centralization', f"{metrics1.get('centralization', 0):.1f}%", color=HOME_COLOR), unsafe_allow_html=True)
+    with c6: st.markdown(metric_card('Passes/Link', f"{metrics1.get('avg_link_passes', 0):.1f}", color=HOME_COLOR), unsafe_allow_html=True)
 
 with col_sep:
     st.markdown("<div style='border-left:1px solid #2d3748;height:120px;margin:auto;width:1px;margin-top:30px;'></div>", unsafe_allow_html=True)
 
 with col_t2:
-    st.markdown(f"<div style='font-family: 'DM Mono', monospace;font-size:12px;color:#f6ad55;text-align:center;font-weight:700;margin-bottom:12px;'>{team2}</div>", unsafe_allow_html=True)
+    st.markdown(f"<div style='font-family: 'DM Mono', monospace;font-size:12px;color:{AWAY_COLOR};text-align:center;font-weight:700;margin-bottom:12px;'>{team2}</div>", unsafe_allow_html=True)
     c1, c2, c3 = st.columns(3)
-    with c1: st.markdown(metric_card('Total Passes', metrics2.get('total_passes', '—')).replace('#4fd1c5', '#f6ad55'), unsafe_allow_html=True)
-    with c2: st.markdown(metric_card('Connections', metrics2.get('connections', '—')).replace('#4fd1c5', '#f6ad55'), unsafe_allow_html=True)
-    with c3: st.markdown(metric_card('Density', f"{metrics2.get('density', 0):.2f}").replace('#4fd1c5', '#f6ad55'), unsafe_allow_html=True)
+    with c1: st.markdown(metric_card('Total Passes', metrics2.get('total_passes', '—'), color=AWAY_COLOR), unsafe_allow_html=True)
+    with c2: st.markdown(metric_card('Connections', metrics2.get('connections', '—'), color=AWAY_COLOR), unsafe_allow_html=True)
+    with c3: st.markdown(metric_card('Density', f"{metrics2.get('density', 0):.2f}", color=AWAY_COLOR), unsafe_allow_html=True)
     c4, c5, c6 = st.columns(3)
-    with c4: st.markdown(metric_card('Clustering', f"{metrics2.get('clustering', 0):.2f}").replace('#4fd1c5', '#f6ad55'), unsafe_allow_html=True)
-    with c5: st.markdown(metric_card('Centralization', f"{metrics2.get('centralization', 0):.1f}%").replace('#4fd1c5', '#f6ad55'), unsafe_allow_html=True)
-    with c6: st.markdown(metric_card('Passes/Link', f"{metrics2.get('avg_link_passes', 0):.1f}").replace('#4fd1c5', '#f6ad55'), unsafe_allow_html=True)
+    with c4: st.markdown(metric_card('Clustering', f"{metrics2.get('clustering', 0):.2f}", color=AWAY_COLOR), unsafe_allow_html=True)
+    with c5: st.markdown(metric_card('Centralization', f"{metrics2.get('centralization', 0):.1f}%", color=AWAY_COLOR), unsafe_allow_html=True)
+    with c6: st.markdown(metric_card('Passes/Link', f"{metrics2.get('avg_link_passes', 0):.1f}", color=AWAY_COLOR), unsafe_allow_html=True)
 
 
 # ─── TABS ─────────────────────────────────────────────────────────────────────
@@ -879,11 +885,11 @@ with tab1:
     st.markdown('<div class="section-header">🕸️ Pass Networks — Completed passes only</div>', unsafe_allow_html=True)
     col_a, col_b = st.columns(2)
     with col_a:
-        fig1 = plot_pass_network(nodes1, edges1, team1, period_filter)
+        fig1 = plot_pass_network(nodes1, edges1, team1, period_filter, color=HOME_COLOR)
         st.pyplot(fig1, use_container_width=True)
         plt.close()
     with col_b:
-        fig2 = plot_pass_network(nodes2, edges2, team2, period_filter)
+        fig2 = plot_pass_network(nodes2, edges2, team2, period_filter, color=AWAY_COLOR)
         st.pyplot(fig2, use_container_width=True)
         plt.close()
 
@@ -908,11 +914,11 @@ with tab1:
         return html
 
     with colp1:
-        st.markdown(f"<div style='font-family:Space Mono;font-size:11px;color:#4fd1c5;margin-bottom:10px;'>{team1}</div>", unsafe_allow_html=True)
-        st.markdown(top_players_html(nodes1, '#4fd1c5'), unsafe_allow_html=True)
+        st.markdown(f"<div style='font-family:Space Mono;font-size:11px;color:{HOME_COLOR};margin-bottom:10px;'>{team1}</div>", unsafe_allow_html=True)
+        st.markdown(top_players_html(nodes1, HOME_COLOR), unsafe_allow_html=True)
     with colp2:
-        st.markdown(f"<div style='font-family:Space Mono;font-size:11px;color:#f6ad55;margin-bottom:10px;'>{team2}</div>", unsafe_allow_html=True)
-        st.markdown(top_players_html(nodes2, '#f6ad55'), unsafe_allow_html=True)
+        st.markdown(f"<div style='font-family:Space Mono;font-size:11px;color:{AWAY_COLOR};margin-bottom:10px;'>{team2}</div>", unsafe_allow_html=True)
+        st.markdown(top_players_html(nodes2, AWAY_COLOR), unsafe_allow_html=True)
 
 
 # TAB 2 — HEATMAPS
@@ -920,11 +926,11 @@ with tab2:
     st.markdown('<div class="section-header">🌡️ Passing Position Heatmaps</div>', unsafe_allow_html=True)
     col_a, col_b = st.columns(2)
     with col_a:
-        fig3 = plot_heatmap(events, team1, period_filter)
+        fig3 = plot_heatmap(events, team1, period_filter, color=HOME_COLOR)
         st.pyplot(fig3, use_container_width=True)
         plt.close()
     with col_b:
-        fig4 = plot_heatmap(events, team2, period_filter)
+        fig4 = plot_heatmap(events, team2, period_filter, color=AWAY_COLOR)
         st.pyplot(fig4, use_container_width=True)
         plt.close()
 
@@ -936,12 +942,12 @@ with tab3:
     st.markdown('<div class="section-header">📈 Centrality Analysis — Betweenness</div>', unsafe_allow_html=True)
     col_a, col_b = st.columns(2)
     with col_a:
-        fig5 = plot_centrality_bar(nodes1, team1)
+        fig5 = plot_centrality_bar(nodes1, team1, color=HOME_COLOR)
         if fig5:
             st.pyplot(fig5, use_container_width=True)
             plt.close()
     with col_b:
-        fig6 = plot_centrality_bar(nodes2, team2)
+        fig6 = plot_centrality_bar(nodes2, team2, color=AWAY_COLOR)
         if fig6:
             st.pyplot(fig6, use_container_width=True)
             plt.close()
@@ -959,13 +965,15 @@ with tab3:
         display['Betweenness'] = display['Betweenness'].round(3)
         display['Passes Received'] = display['Passes Received'].round(0).astype(int)
         display['Passes Made'] = display['Passes Made'].round(0).astype(int)
-        st.dataframe(display.reset_index(drop=True), use_container_width=True, height=300)
+        styled = display.reset_index(drop=True).style.format({'Betweenness': '{:.3f}'}).set_properties(
+            subset=['Player'], **{'color': accent, 'font-weight': 'bold'})
+        st.dataframe(styled, use_container_width=True, height=300)
 
     col_t1, col_t2 = st.columns(2)
     with col_t1:
-        player_metrics_table(nodes1, team1, '#4fd1c5')
+        player_metrics_table(nodes1, team1, HOME_COLOR)
     with col_t2:
-        player_metrics_table(nodes2, team2, '#f6ad55')
+        player_metrics_table(nodes2, team2, AWAY_COLOR)
 
     st.info("💡 **Betweenness centrality** : mesure combien de fois un joueur est sur le chemin de passe le plus court entre deux coéquipiers. Score élevé = pivot tactique clé.")
 
@@ -1009,7 +1017,7 @@ with tab4:
 
     for insight in insights:
         st.markdown(f"""
-        <div style='background:#111827;border:1px solid #2d3748;border-left:3px solid #4fd1c5;
+        <div style='background:#111827;border:1px solid #2d3748;border-left:3px solid #4a5568;
                     border-radius:8px;padding:14px 16px;margin-bottom:10px;
                     font-family: 'Inter', sans-serif;font-size:14px;color:#cbd5e0;line-height:1.6;'>
             {insight}
@@ -1031,4 +1039,7 @@ with tab4:
             f"{metrics2.get('centralization', 0):.1f}%", f"{metrics2.get('avg_link_passes', 0):.1f}",
         ],
     })
-    st.dataframe(comp_df, use_container_width=True, hide_index=True)
+    comp_styled = (comp_df.style
+                   .set_properties(subset=[team1], **{'color': HOME_COLOR, 'font-weight': 'bold'})
+                   .set_properties(subset=[team2], **{'color': AWAY_COLOR, 'font-weight': 'bold'}))
+    st.dataframe(comp_styled, use_container_width=True, hide_index=True)
