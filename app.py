@@ -741,19 +741,24 @@ with st.sidebar:
         f"{r['competition_name']} {r['season_name']}": (r['competition_id'], r['season_id'])
         for _, r in comps.iterrows()
     }
-    selected_comp_label = st.selectbox("🏆 Competition", list(comp_options.keys()),
-                                        index=list(comp_options.keys()).index('La Liga 2020/2021') if 'La Liga 2020/2021' in comp_options else 0)
+    DEFAULT_COMP = "UEFA Women's Euro 2025"
+    comp_keys = list(comp_options.keys())
+    selected_comp_label = st.selectbox("🏆 Competition", comp_keys,
+                                        index=comp_keys.index(DEFAULT_COMP) if DEFAULT_COMP in comp_keys else 0)
     comp_id, season_id = comp_options[selected_comp_label]
 
     # Match selector
     with st.spinner("Loading matches…"):
         matches = load_matches(comp_id, season_id)
 
+    # Matchs dans l'ordre chronologique : le dernier (la finale d'un tournoi) est proposé par défaut
+    matches = matches.sort_values(["match_date", "kick_off"], na_position="first").reset_index(drop=True)
     match_labels = {
         f"J{i+1} — {r['home_team']} {r['home_score']}-{r['away_score']} {r['away_team']}": r['match_id']
         for i, (_, r) in enumerate(matches.iterrows())
     }
-    selected_match_label = st.selectbox("📅 Match", list(match_labels.keys()))
+    selected_match_label = st.selectbox("📅 Match", list(match_labels.keys()),
+                                        index=len(match_labels) - 1)
     match_id = match_labels[selected_match_label]
 
     # Period filter
