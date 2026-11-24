@@ -1,20 +1,35 @@
 """
-Pass Network & Team Structure Dashboard
-Julie Landrevie — Football Data & Video Analyst
-Sources: StatsBomb Open Data + FBref
+Pass Network & Team Structure — Julie Landrevie (français / anglais, clair / sombre)
+Sources : StatsBomb Open Data. Charte commune : jl_ui.py et .streamlit/config.toml.
 """
+import math
+import warnings
 
 import streamlit as st
-import pandas as pd
-import numpy as np
-import matplotlib.pyplot as plt
-import matplotlib.patches as mpatches
-from matplotlib.colors import to_rgba, LinearSegmentedColormap
-import networkx as nx
-from mplsoccer import Pitch, VerticalPitch
-from statsbombpy import sb
-import warnings
+
 warnings.filterwarnings("ignore")
+
+from jl_ui import C, footer, fr_num, header, kpi, mpl_style, note, pitch_kwargs, setup, t  # noqa: E402
+
+setup("Pass Network — Julie Landrevie", "Pass Network — Julie Landrevie", icon="⚽")
+
+import matplotlib.pyplot as plt  # noqa: E402
+import networkx as nx  # noqa: E402
+import numpy as np  # noqa: E402
+import pandas as pd  # noqa: E402
+from matplotlib.colors import LinearSegmentedColormap, to_rgba  # noqa: E402
+from matplotlib.patheffects import withStroke  # noqa: E402
+from matplotlib.ticker import FuncFormatter  # noqa: E402
+from mplsoccer import Pitch  # noqa: E402
+from statsbombpy import sb  # noqa: E402
+
+mpl_style()
+# Couleurs des équipes, les mêmes dans toutes les sections : domicile vert d'eau, extérieur rouille
+HOME_COLOR = C["teal"]
+AWAY_COLOR = C["rust"]
+PERIODS = {"Full Match": ("Match entier", "Full match"),
+           "1st Half": ("1re mi-temps", "1st half"),
+           "2nd Half": ("2e mi-temps", "2nd half")}
 
 
 # ─── PLAYER NAME CLEANER ──────────────────────────────────────────────────────
@@ -187,136 +202,6 @@ def clean_name(full_name: str) -> str:
             return candidate
     return parts[-1]
 
-
-
-
-# ─── PAGE CONFIG ──────────────────────────────────────────────────────────────
-st.set_page_config(
-    page_title="Pass Network & Team Structure",
-    page_icon="⚽",
-    layout="wide",
-    initial_sidebar_state="expanded",
-)
-
-# ─── CUSTOM CSS ───────────────────────────────────────────────────────────────
-st.markdown("""
-<style>
-@import url('https://fonts.googleapis.com/css2?family=Syne:wght@700;800&family=Inter:wght@400;500;600&family=DM+Mono&display=swap');
-
-html, body, [class*="css"] {
-    font-family: 'Inter', sans-serif;
-}
-h1, h2, h3 { font-family: 'Syne', sans-serif; font-weight: 800; }
-
-.stApp { background-color: #0a0e1a; color: #e8eaf0; }
-
-.metric-card {
-    background: linear-gradient(135deg, #111827 0%, #1a2235 100%);
-    border: 1px solid #2d3748;
-    border-radius: 12px;
-    padding: 14px 10px;
-    text-align: center;
-    transition: border-color 0.2s;
-    height: 110px;
-    display: flex;
-    flex-direction: column;
-    justify-content: center;
-    align-items: center;
-    box-sizing: border-box;
-}
-.metric-card:hover { border-color: #4fd1c5; }
-.metric-label {
-    font-family: 'DM Mono', monospace;
-    font-size: 9px;
-    color: #718096;
-    text-transform: uppercase;
-    letter-spacing: 1px;
-    margin-bottom: 6px;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    width: 100%;
-}
-.metric-value {
-    font-family: 'Syne', sans-serif;
-    font-size: 24px;
-    font-weight: 800;
-    color: #4fd1c5;
-    line-height: 1;
-    white-space: nowrap;
-}
-.metric-sub {
-    font-size: 11px;
-    color: #718096;
-    margin-top: 4px;
-}
-
-.section-header {
-    font-family: 'DM Mono', monospace;
-    font-size: 11px;
-    color: #4fd1c5;
-    text-transform: uppercase;
-    letter-spacing: 3px;
-    border-bottom: 1px solid #2d3748;
-    padding-bottom: 8px;
-    margin: 28px 0 16px 0;
-}
-
-.player-card {
-    background: #111827;
-    border: 1px solid #2d3748;
-    border-left: 3px solid #4fd1c5;
-    border-radius: 8px;
-    padding: 12px 14px;
-    margin-bottom: 8px;
-    font-family: 'DM Mono', monospace;
-    font-size: 12px;
-}
-.player-name { color: #e8eaf0; font-weight: 700; font-size: 13px; margin-bottom: 4px; }
-.player-stat { color: #718096; }
-.player-stat span { color: #4fd1c5; font-weight: 700; }
-
-.badge {
-    display: inline-block;
-    background: #1a2235;
-    border: 1px solid #4fd1c5;
-    color: #4fd1c5;
-    font-family: 'DM Mono', monospace;
-    font-size: 10px;
-    padding: 2px 8px;
-    border-radius: 4px;
-    margin: 2px;
-}
-
-div[data-testid="stSidebar"] {
-    background: #0d1117;
-    border-right: 1px solid #2d3748;
-}
-div[data-testid="stSidebar"] .stSelectbox label,
-div[data-testid="stSidebar"] .stRadio label { color: #a0aec0; font-size: 12px; }
-
-.stSelectbox > div > div { background: #111827; border-color: #2d3748; color: #e8eaf0; }
-.stRadio > div { gap: 8px; }
-
-.hero-title {
-    font-family: 'Syne', sans-serif;
-    font-size: 36px;
-    font-weight: 800;
-    color: #e8eaf0;
-    line-height: 1.1;
-    margin-bottom: 4px;
-}
-.hero-sub {
-    font-family: 'DM Mono', monospace;
-    font-size: 12px;
-    color: #4fd1c5;
-    letter-spacing: 2px;
-    text-transform: uppercase;
-}
-</style>
-""", unsafe_allow_html=True)
-
-
 # ─── DATA LOADING ─────────────────────────────────────────────────────────────
 
 @st.cache_data(ttl=3600, show_spinner=False)
@@ -463,41 +348,26 @@ def compute_team_metrics(nodes, edges):
         'connections': len(edges),
     }
 
+# ─── GRAPHIQUES (fond crème dans les deux thèmes, comme les visuels du site) ───
 
-# ─── PLOTTING ─────────────────────────────────────────────────────────────────
-
-DARK_BG = '#0a0e1a'
-PITCH_LINE = '#2d3748'
-ACCENT = '#4fd1c5'
-ACCENT2 = '#f6ad55'
-# Couleurs des équipes, utilisées dans toutes les sections
-HOME_COLOR = '#3b82f6'   # bleu : équipe à domicile
-AWAY_COLOR = '#facc15'   # jaune : équipe à l'extérieur
-NODE_COLOR = '#4fd1c5'
-EDGE_COLOR = '#4fd1c5'
+def _dark(color, k=0.55):
+    r, g, b, _ = to_rgba(color)
+    return (r * k, g * k, b * k, 1)
 
 
-def plot_pass_network(nodes, edges, team_name, period_label, title_suffix='', color=ACCENT):
-    pitch = Pitch(
-        pitch_type='statsbomb',
-        pitch_color=DARK_BG,
-        line_color=PITCH_LINE,
-        linewidth=1.5,
-        corner_arcs=True,
-    )
+def plot_pass_network(nodes, edges, color=HOME_COLOR):
+    pitch = Pitch(pitch_type='statsbomb', corner_arcs=True, **pitch_kwargs(linewidth=1.5))
     fig, ax = pitch.draw(figsize=(12, 8))
-    fig.patch.set_facecolor(DARK_BG)
-    ax.set_facecolor(DARK_BG)
 
     if nodes.empty or edges.empty:
-        ax.text(60, 40, 'Insufficient data', color='white',
+        ax.text(60, 40, t("Données insuffisantes", "Insufficient data"), color=C["ink2"],
                 fontsize=14, ha='center', va='center')
         return fig
 
     max_passes = nodes['pass_count'].max()
     max_edge = edges['count'].max()
 
-    # Draw edges
+    # Liens : épaisseur et opacité proportionnelles au nombre de passes
     for _, edge in edges.iterrows():
         from_node = nodes[nodes['player'] == edge['player']]
         to_node = nodes[nodes['player'] == edge['pass_recipient']]
@@ -505,297 +375,203 @@ def plot_pass_network(nodes, edges, team_name, period_label, title_suffix='', co
             continue
         x_start, y_start = from_node.iloc[0]['avg_x'], from_node.iloc[0]['avg_y']
         x_end, y_end = to_node.iloc[0]['avg_x'], to_node.iloc[0]['avg_y']
-
-        alpha = 0.15 + 0.6 * (edge['count'] / max_edge)
+        alpha = 0.18 + 0.6 * (edge['count'] / max_edge)
         lw = 0.5 + 4.5 * (edge['count'] / max_edge)
         ax.annotate('', xy=(x_end, y_end), xytext=(x_start, y_start),
-                    arrowprops=dict(
-                        arrowstyle='->', color=to_rgba(color, alpha),
-                        lw=lw, connectionstyle='arc3,rad=0.05'
-                    ))
+                    arrowprops=dict(arrowstyle='->', color=to_rgba(color, alpha),
+                                    lw=lw, connectionstyle='arc3,rad=0.05'))
 
-    from matplotlib.patheffects import withStroke
-
-    # ── Couche 1 : cercles (zorder=5)
+    # Cercles (taille = passes réussies), chiffres, puis noms
     for _, node in nodes.iterrows():
         size = 800 + 2200 * (node['pass_count'] / max_passes)
-        ax.scatter(node['avg_x'], node['avg_y'],
-                   s=size, c=color, zorder=5, alpha=0.92,
-                   linewidths=2.5, edgecolors='white')
-
-    # ── Couche 2 : chiffres de passes (zorder=6)
+        ax.scatter(node['avg_x'], node['avg_y'], s=size, c=color, zorder=5, alpha=0.95,
+                   linewidths=2.5, edgecolors=C["bg"])
     for _, node in nodes.iterrows():
         ax.text(node['avg_x'], node['avg_y'], str(int(node['pass_count'])),
-                color='white', fontsize=8.5, fontweight='bold',
-                ha='center', va='center', zorder=6,
-                fontfamily='DejaVu Sans',
-                path_effects=[withStroke(linewidth=2.5, foreground='#0a0e1a')])
+                color='white', fontsize=10, fontweight='bold', ha='center', va='center', zorder=6,
+                path_effects=[withStroke(linewidth=2.2, foreground=_dark(color))])
 
-    # ── Couche 3 : labels noms — placement avec anti-collision
-    # Ordre rendu : cercles(5) → chiffres(6) → labels(10)
-    # Règles :
-    #   - Départ : juste au-dessus du cercle propre
-    #   - Interdit : chevaucher le chiffre d'un autre node
-    #   - Interdit : chevaucher un autre label
-    #   - Toujours au plus proche du cercle propre
-    import math as _math
-
-    LABEL_W = 8.5    # largeur approx (noms courts = nom de famille)
-    LABEL_H = 2.6
-    GAP     = 0.4    # gap entre bord cercle et label
+    # Noms : placement anti-collision (au plus près du cercle, sans couvrir chiffres ni autres noms)
+    LABEL_W, LABEL_H, GAP = 8.5, 2.6, 0.4
 
     def _r(pc):
         return ((800 + 2200 * (pc / max_passes)) ** 0.5) * 0.068
 
-    nlist = [{'p': nd['player'], 'nx': nd['avg_x'],
-              'ny': nd['avg_y'], 'r': _r(nd['pass_count'])}
+    nlist = [{'p': nd['player'], 'nx': nd['avg_x'], 'ny': nd['avg_y'], 'r': _r(nd['pass_count'])}
              for _, nd in nodes.iterrows()]
+    lpos = {n['p']: [n['nx'], n['ny'] - n['r'] - GAP - LABEL_H * 0.5] for n in nlist}
 
-    # Position initiale : centré au-dessus du cercle
-    lpos = {n['p']: [n['nx'], n['ny'] - n['r'] - GAP - LABEL_H * 0.5]
-            for n in nlist}
-
-    # Répulsion en 2 passes, 100 itérations
-    for iteration in range(100):
+    for _ in range(100):
         moved = False
         for ni in nlist:
             p = ni['p']
             lx, ly = lpos[p]
-
-            # Règle A : ne pas couvrir le CHIFFRE (centre) des autres nodes
             for nj in nlist:
                 if nj['p'] == p:
                     continue
-                dx = lx - nj['nx']
-                dy = ly - nj['ny']
+                dx, dy = lx - nj['nx'], ly - nj['ny']
                 zone = nj['r'] + 0.5
-                dist = _math.sqrt(dx*dx + dy*dy) or 0.001
+                dist = math.sqrt(dx * dx + dy * dy) or 0.001
                 if dist < zone:
                     push = (zone - dist + 0.2) / dist
                     lpos[p][0] += dx * push * 0.6
                     lpos[p][1] += dy * push * 0.6
                     lx, ly = lpos[p]
                     moved = True
-
-            # Règle B : ne pas chevaucher les autres LABELS
             for nj in nlist:
                 if nj['p'] == p:
                     continue
                 lx2, ly2 = lpos[nj['p']]
-                ox = LABEL_W   - abs(lx - lx2)
+                ox = LABEL_W - abs(lx - lx2)
                 oy = LABEL_H + 0.2 - abs(ly - ly2)
                 if ox > 0 and oy > 0:
                     if oy <= ox:
                         sh = (oy * 0.5 + 0.15) * (1 if ly >= ly2 else -1)
-                        lpos[p][1] += sh; ly += sh
+                        lpos[p][1] += sh
+                        ly += sh
                     else:
                         sh = (ox * 0.5 + 0.15) * (1 if lx >= lx2 else -1)
-                        lpos[p][0] += sh; lx += sh
+                        lpos[p][0] += sh
+                        lx += sh
                     moved = True
-
         if not moved:
             break
 
-    # Dessiner dans l'ordre : cercles, chiffres, labels
     for ni in nlist:
         p = ni['p']
-        short = clean_name(p)
         lx = max(1.0, min(119.0, lpos[p][0]))
         ly = max(1.0, min(79.0, lpos[p][1]))
-        ax.text(lx, ly, short,
-                color='#ffffff', fontsize=7.5, fontweight='bold',
+        ax.text(lx, ly, clean_name(p), color=C["ink"], fontsize=9, fontweight='bold',
                 ha='center', va='center', zorder=10,
-                fontfamily='DejaVu Sans',
-                bbox=dict(boxstyle='square,pad=0.22', facecolor='#0d1117',
-                          alpha=0.92, edgecolor='#4a5568', linewidth=0.5))
+                bbox=dict(boxstyle='square,pad=0.22', facecolor=C["card"], alpha=0.95,
+                          edgecolor=C["grid"], linewidth=0.6))
 
     plt.tight_layout()
     return fig
 
 
-def plot_heatmap(events, team_name, period_filter='Full Match', color=ACCENT):
-    """Average position heatmap for the team."""
+def plot_heatmap(events, team_name, period_filter='Full Match', color=HOME_COLOR):
+    """Zones d'où l'équipe joue ses passes."""
     passes = events[(events['type'] == 'Pass') & (events['team'] == team_name)].copy()
     if period_filter == '1st Half':
         passes = passes[passes['period'] == 1]
     elif period_filter == '2nd Half':
         passes = passes[passes['period'] == 2]
-
     passes['x'] = passes['location'].apply(lambda l: l[0] if isinstance(l, list) else np.nan)
     passes['y'] = passes['location'].apply(lambda l: l[1] if isinstance(l, list) else np.nan)
     passes = passes.dropna(subset=['x', 'y'])
 
-    pitch = Pitch(
-        pitch_type='statsbomb',
-        pitch_color=DARK_BG,
-        line_color=PITCH_LINE,
-        linewidth=1.5,
-    )
+    pitch = Pitch(pitch_type='statsbomb', line_zorder=2, **pitch_kwargs(linewidth=1.5))
     fig, ax = pitch.draw(figsize=(12, 8))
-    fig.patch.set_facecolor(DARK_BG)
-    ax.set_facecolor(DARK_BG)
-
     if not passes.empty:
-        team_cmap = LinearSegmentedColormap.from_list('team', [DARK_BG, color, '#ffffff'])
-        pitch.kdeplot(passes['x'], passes['y'], ax=ax,
-                     cmap=team_cmap, fill=True, levels=100,
-                     alpha=0.75, bw_adjust=0.7)
-
-    ax.set_title(f'{team_name}  |  Passing Heatmap  |  {period_filter}',
-                 color='white', fontsize=13, fontweight='bold',
-                 pad=14, fontfamily='DejaVu Sans')
+        cmap = LinearSegmentedColormap.from_list('team', [C["bg"], to_rgba(color, 0.35), color, _dark(color, 0.7)])
+        pitch.kdeplot(passes['x'], passes['y'], ax=ax, cmap=cmap, fill=True, levels=100,
+                      alpha=0.85, bw_adjust=0.7)
+    ax.set_title(f"{team_name} · {t(*PERIODS[period_filter])}", color=C["ink"], fontsize=14, pad=12)
     plt.tight_layout()
     return fig
 
 
-def plot_centrality_bar(nodes, team_name, color=ACCENT):
-    """Horizontal bar chart of betweenness centrality."""
+def plot_centrality_bar(nodes, color=HOME_COLOR):
+    """Barres horizontales de centralité d'intermédiarité ; la joueuse pivot est mise en avant."""
     if nodes.empty or 'betweenness' not in nodes.columns:
         return None
-
-    df = nodes.sort_values('betweenness', ascending=True).tail(11)
+    df = nodes.sort_values('betweenness', ascending=True).tail(11).copy()
     df['short'] = df['player'].apply(clean_name)
-
     fig, ax = plt.subplots(figsize=(9, 5))
-    fig.patch.set_facecolor(DARK_BG)
-    ax.set_facecolor(DARK_BG)
-
-    colors = [color if v == df['betweenness'].max() else to_rgba(color, 0.35) for v in df['betweenness']]
+    top = df['betweenness'].max()
+    colors = [color if v == top else to_rgba(color, 0.35) for v in df['betweenness']]
     bars = ax.barh(df['short'], df['betweenness'], color=colors, height=0.6)
-
     for bar, val in zip(bars, df['betweenness']):
-        ax.text(bar.get_width() + 0.002, bar.get_y() + bar.get_height() / 2,
-                f'{val:.3f}', va='center', color='#a0aec0', fontsize=9,
-                fontfamily='DejaVu Sans')
-
-    ax.set_xlabel('Betweenness Centrality', color='#718096', fontsize=10)
-    ax.set_title(f'{team_name} — Passing Centrality', color='white',
-                 fontsize=12, fontweight='bold', fontfamily='DejaVu Sans')
-    ax.tick_params(colors='#a0aec0', labelsize=9)
-    ax.spines['top'].set_visible(False)
-    ax.spines['right'].set_visible(False)
-    for spine in ['bottom', 'left']:
-        ax.spines[spine].set_color('#2d3748')
-    ax.xaxis.label.set_color('#718096')
+        ax.text(bar.get_width() + 0.002, bar.get_y() + bar.get_height() / 2, fr_num(val, 3),
+                va='center', color=C["ink"], fontsize=9)
+    ax.set_xlabel(t("Centralité d’intermédiarité", "Betweenness centrality"), fontsize=10)
+    ax.tick_params(length=0, labelsize=9)
+    ax.spines['left'].set_visible(False)
+    ax.grid(axis='x', color=C["grid"])
+    ax.set_axisbelow(True)
     plt.tight_layout()
     return fig
 
 
-def plot_comparison(metrics1, metrics2, team1, team2, color1=HOME_COLOR, color2=AWAY_COLOR):
-    """Radar-style comparison of team metrics."""
-    labels = ['Density', 'Clustering', 'Centralization\n(inverted)', 'Avg Link\nPasses', 'Connections']
-    
-    def normalize(metrics):
-        return [
-            metrics.get('density', 0) * 10,  # scale to ~0-1
-            metrics.get('clustering', 0),
-            1 - metrics.get('centralization', 0) / 100,  # invert: lower = more distributed
-            min(metrics.get('avg_link_passes', 0) / 20, 1),
-            min(metrics.get('connections', 0) / 60, 1),
-        ]
+def plot_comparison(metrics1, metrics2, team1, team2):
+    """Indicateurs de structure normalisés, côte à côte."""
+    labels = [t("Densité", "Density"), t("Triangles\n(clustering)", "Clustering"),
+              t("Répartition\n(centralisation inversée)", "Spread\n(inverted centralization)"),
+              t("Passes\npar lien", "Passes\nper link"), t("Liens", "Links")]
 
-    v1 = normalize(metrics1)
-    v2 = normalize(metrics2)
+    def normalize(m):
+        return [m.get('density', 0), m.get('clustering', 0),
+                1 - m.get('centralization', 0) / 100,
+                min(m.get('avg_link_passes', 0) / 20, 1), min(m.get('connections', 0) / 60, 1)]
 
     x = np.arange(len(labels))
-    width = 0.35
-
-    fig, ax = plt.subplots(figsize=(10, 5))
-    fig.patch.set_facecolor(DARK_BG)
-    ax.set_facecolor(DARK_BG)
-
-    b1 = ax.bar(x - width / 2, v1, width, label=team1, color=color1, alpha=0.85)
-    b2 = ax.bar(x + width / 2, v2, width, label=team2, color=color2, alpha=0.85)
-
+    width = 0.36
+    fig, ax = plt.subplots(figsize=(10, 4.8))
+    ax.bar(x - width / 2, normalize(metrics1), width, label=team1, color=HOME_COLOR)
+    ax.bar(x + width / 2, normalize(metrics2), width, label=team2, color=AWAY_COLOR)
     ax.set_xticks(x)
-    ax.set_xticklabels(labels, color='#a0aec0', fontsize=9)
-    ax.set_ylabel('Normalized Score', color='#718096', fontsize=10)
-    ax.set_title('Team Structure Comparison', color='white',
-                 fontsize=13, fontweight='bold', fontfamily='DejaVu Sans')
-    ax.legend(facecolor='#111827', edgecolor='#2d3748', labelcolor='white', fontsize=10)
-    ax.tick_params(colors='#718096')
-    for spine in ax.spines.values():
-        spine.set_color('#2d3748')
-    ax.yaxis.label.set_color('#718096')
-
+    ax.set_xticklabels(labels, fontsize=9)
+    ax.set_ylabel(t("Score normalisé", "Normalized score"), fontsize=10)
+    ax.tick_params(length=0)
+    ax.spines['left'].set_visible(False)
+    ax.grid(axis='y', color=C["grid"])
+    ax.set_axisbelow(True)
+    ax.set_ylim(0, 1.08)
+    ax.yaxis.set_major_formatter(FuncFormatter(lambda v, _: fr_num(v, 1)))
+    ax.legend(fontsize=10, loc='upper center', ncol=2, bbox_to_anchor=(0.5, 1.12))
     plt.tight_layout()
     return fig
 
 
-# ─── SIDEBAR ──────────────────────────────────────────────────────────────────
+def show(fig):
+    st.pyplot(fig, width="stretch")
+    plt.close(fig)
+
+
+# ─── BARRE LATÉRALE ───────────────────────────────────────────────────────────
 
 with st.sidebar:
-    st.markdown("""
-    <div style='padding: 16px 0 20px 0;'>
-        <div style='font-family: Syne, sans-serif; font-size: 18px; font-weight: 800; color: #e8eaf0;'>
-            ⚽ Pass Network
-        </div>
-        <div style='font-family: 'DM Mono', monospace; font-size: 10px; color: #4fd1c5; 
-                    letter-spacing: 2px; text-transform: uppercase; margin-top: 4px;'>
-            Team Structure Analysis
-        </div>
-    </div>
-    """, unsafe_allow_html=True)
+    st.markdown(f"### Pass Network\n{t('Structure collective', 'Team structure')}")
 
-    st.markdown("---")
-
-    # Competition selector
     comps = load_competitions()
-    comp_options = {
-        f"{r['competition_name']} {r['season_name']}": (r['competition_id'], r['season_id'])
-        for _, r in comps.iterrows()
-    }
+    comp_options = {f"{r['competition_name']} {r['season_name']}": (r['competition_id'], r['season_id'])
+                    for _, r in comps.iterrows()}
     DEFAULT_COMP = "UEFA Women's Euro 2025"
     comp_keys = list(comp_options.keys())
-    selected_comp_label = st.selectbox("🏆 Competition", comp_keys,
-                                        index=comp_keys.index(DEFAULT_COMP) if DEFAULT_COMP in comp_keys else 0)
+    selected_comp_label = st.selectbox(t("Compétition", "Competition"), comp_keys,
+                                       index=comp_keys.index(DEFAULT_COMP) if DEFAULT_COMP in comp_keys else 0)
     comp_id, season_id = comp_options[selected_comp_label]
 
-    # Match selector
-    with st.spinner("Loading matches…"):
+    with st.spinner(t("Chargement des matchs…", "Loading matches…")):
         matches = load_matches(comp_id, season_id)
 
-    # Matchs dans l'ordre chronologique : le dernier (la finale d'un tournoi) est proposé par défaut
+    # Ordre chronologique : le dernier match (la finale d'un tournoi) est proposé par défaut
     matches = matches.sort_values(["match_date", "kick_off"], na_position="first").reset_index(drop=True)
-    match_labels = {
-        f"J{i+1} — {r['home_team']} {r['home_score']}-{r['away_score']} {r['away_team']}": r['match_id']
-        for i, (_, r) in enumerate(matches.iterrows())
-    }
-    selected_match_label = st.selectbox("📅 Match", list(match_labels.keys()),
-                                        index=len(match_labels) - 1)
-    match_id = match_labels[selected_match_label]
+    match_ids = matches['match_id'].tolist()
+    match_txt = {r['match_id']: f"{i + 1}. {r['home_team']} {r['home_score']}-{r['away_score']} {r['away_team']}"
+                 for i, (_, r) in enumerate(matches.iterrows())}
+    match_id = st.selectbox(t("Match", "Match"), match_ids, index=len(match_ids) - 1,
+                            format_func=lambda m: match_txt[m])
 
-    # Period filter
-    st.markdown("---")
-    period_filter = st.radio("⏱ Période", ['Full Match', '1st Half', '2nd Half'], index=0)
-
-    # Min passes slider for edges
-    st.markdown("---")
-    min_passes = st.slider("Min. passes per link", min_value=1, max_value=10, value=3)
-
-    st.markdown("---")
-    st.markdown("""
-    <div style='font-family: 'DM Mono', monospace; font-size: 10px; color: #4a5568; line-height: 1.8;'>
-        Data: StatsBomb Open Data<br>
-        Built by Julie Landrevie<br>
-        Stack: Python · mplsoccer · NetworkX
-    </div>
-    """, unsafe_allow_html=True)
+    period_filter = st.radio(t("Période", "Period"), list(PERIODS), index=0,
+                             format_func=lambda k: t(*PERIODS[k]))
+    min_passes = st.slider(t("Passes minimum par lien", "Minimum passes per link"),
+                           min_value=1, max_value=10, value=3)
+    st.caption(t("Données : StatsBomb Open Data · Python, mplsoccer, NetworkX",
+                 "Data: StatsBomb Open Data · Python, mplsoccer, NetworkX"))
 
 
-# ─── LOAD DATA ────────────────────────────────────────────────────────────────
+# ─── DONNÉES DU MATCH ─────────────────────────────────────────────────────────
 
-with st.spinner("Loading events…"):
+with st.spinner(t("Chargement des événements…", "Loading events…")):
     events = load_events(match_id)
-    lineups = load_lineups(match_id)
 
-# Équipe 1 = domicile (bleu), équipe 2 = extérieur (jaune)
-_mrow = matches[matches['match_id'] == match_id].iloc[0]
+match_row = matches[matches['match_id'] == match_id].iloc[0]
 teams = events['team'].unique().tolist()
-team1 = _mrow['home_team'] if _mrow['home_team'] in teams else teams[0]
-team2 = _mrow['away_team'] if _mrow['away_team'] in teams else [t for t in teams if t != team1][0]
+team1 = match_row['home_team'] if match_row['home_team'] in teams else teams[0]
+team2 = match_row['away_team'] if match_row['away_team'] in teams else [x for x in teams if x != team1][0]
 
-# Build networks
 nodes1, edges1 = build_pass_network(events, team1, period_filter)
 edges1 = edges1[edges1['count'] >= min_passes] if not edges1.empty else edges1
 nodes1 = compute_network_metrics(nodes1, edges1)
@@ -807,239 +583,173 @@ nodes2 = compute_network_metrics(nodes2, edges2)
 metrics2 = compute_team_metrics(nodes2, edges2)
 
 
-# ─── HEADER ───────────────────────────────────────────────────────────────────
+# ─── EN-TÊTE ──────────────────────────────────────────────────────────────────
 
-match_row = matches[matches['match_id'] == match_id].iloc[0]
-home, away = match_row['home_team'], match_row['away_team']
-score = f"{match_row['home_score']} – {match_row['away_score']}"
+header(t("Réseau de passes et structure collective", "Pass network and team structure"),
+       f"{selected_comp_label} · {t(*PERIODS[period_filter])} · "
+       + t("passes réussies des onze titulaires", "completed passes between the starting eleven"))
 
-st.markdown(f"""
-<div style='display: flex; align-items: center; justify-content: space-between; 
-            border-bottom: 1px solid #2d3748; padding-bottom: 20px; margin-bottom: 24px;'>
-    <div>
-        <div class="hero-title">Pass Network<br>& Team Structure</div>
-        <div class="hero-sub" style='margin-top: 8px;'>StatsBomb Open Data · {selected_comp_label}</div>
-    </div>
-    <div style='text-align: right; font-family: Syne, sans-serif;'>
-        <div style='font-size: 14px; color: {HOME_COLOR}; font-weight: 700;'>{home}</div>
-        <div style='font-size: 42px; font-weight: 800; color: #e8eaf0; line-height: 1;'>{score}</div>
-        <div style='font-size: 14px; color: {AWAY_COLOR}; font-weight: 700;'>{away}</div>
-        <div style='font-family: 'DM Mono', monospace; font-size: 11px; color: #4a5568; margin-top: 6px;'>
-            {period_filter}
-        </div>
-    </div>
-</div>
-""", unsafe_allow_html=True)
+st.markdown(
+    f"""<div style="display:flex;align-items:baseline;gap:1.2rem;flex-wrap:wrap;margin:0.2rem 0 1rem 0;">
+<span style="font-size:1.15rem;"><span style="color:{HOME_COLOR};">●</span> <b>{match_row['home_team']}</b></span>
+<span style="font-family:'DM Serif Display',Georgia,serif;font-size:2.4rem;line-height:1;">
+{match_row['home_score']} – {match_row['away_score']}</span>
+<span style="font-size:1.15rem;"><b>{match_row['away_team']}</b> <span style="color:{AWAY_COLOR};">●</span></span>
+</div>""", unsafe_allow_html=True)
 
 
-# ─── TEAM METRICS CARDS ───────────────────────────────────────────────────────
+# ─── INDICATEURS ──────────────────────────────────────────────────────────────
 
-st.markdown('<div class="section-header">📊 Structure Metrics</div>', unsafe_allow_html=True)
+def team_kpis(metrics, team, color):
+    st.markdown(f"<span style='color:{color};'>●</span> **{team}**", unsafe_allow_html=True)
+    r1 = st.columns(3)
+    kpi(r1[0], str(metrics.get('total_passes', '—')), t("Passes réussies", "Completed passes"))
+    kpi(r1[1], str(metrics.get('connections', '—')), t("Liens actifs", "Active links"))
+    kpi(r1[2], fr_num(metrics.get('density', 0), 2), t("Densité", "Density"))
+    st.write("")
+    r2 = st.columns(3)
+    kpi(r2[0], fr_num(metrics.get('clustering', 0), 2), t("Triangles (clustering)", "Clustering"))
+    kpi(r2[1], fr_num(metrics.get('centralization', 0), 1, pct=True), t("Centralisation", "Centralization"))
+    kpi(r2[2], fr_num(metrics.get('avg_link_passes', 0), 1), t("Passes par lien", "Passes per link"))
 
-def metric_card(label, value, sub='', color=ACCENT):
-    return f"""
-    <div class="metric-card" style="border-top:3px solid {color}">
-        <div class="metric-label">{label}</div>
-        <div class="metric-value" style="color:{color}">{value}</div>
-        {'<div class="metric-sub">'+sub+'</div>' if sub else ''}
-    </div>
-    """
 
-col_t1, col_sep, col_t2 = st.columns([5, 1, 5])
-
+col_t1, col_t2 = st.columns(2, gap="large")
 with col_t1:
-    st.markdown(f"<div style='font-family: 'DM Mono', monospace;font-size:12px;color:{HOME_COLOR};text-align:center;font-weight:700;margin-bottom:12px;'>{team1}</div>", unsafe_allow_html=True)
-    c1, c2, c3 = st.columns(3)
-    with c1: st.markdown(metric_card('Total Passes', metrics1.get('total_passes', '—'), color=HOME_COLOR), unsafe_allow_html=True)
-    with c2: st.markdown(metric_card('Connections', metrics1.get('connections', '—'), color=HOME_COLOR), unsafe_allow_html=True)
-    with c3: st.markdown(metric_card('Density', f"{metrics1.get('density', 0):.2f}", color=HOME_COLOR), unsafe_allow_html=True)
-    c4, c5, c6 = st.columns(3)
-    with c4: st.markdown(metric_card('Clustering', f"{metrics1.get('clustering', 0):.2f}", color=HOME_COLOR), unsafe_allow_html=True)
-    with c5: st.markdown(metric_card('Centralization', f"{metrics1.get('centralization', 0):.1f}%", color=HOME_COLOR), unsafe_allow_html=True)
-    with c6: st.markdown(metric_card('Passes/Link', f"{metrics1.get('avg_link_passes', 0):.1f}", color=HOME_COLOR), unsafe_allow_html=True)
-
-with col_sep:
-    st.markdown("<div style='border-left:1px solid #2d3748;height:120px;margin:auto;width:1px;margin-top:30px;'></div>", unsafe_allow_html=True)
-
+    team_kpis(metrics1, team1, HOME_COLOR)
 with col_t2:
-    st.markdown(f"<div style='font-family: 'DM Mono', monospace;font-size:12px;color:{AWAY_COLOR};text-align:center;font-weight:700;margin-bottom:12px;'>{team2}</div>", unsafe_allow_html=True)
-    c1, c2, c3 = st.columns(3)
-    with c1: st.markdown(metric_card('Total Passes', metrics2.get('total_passes', '—'), color=AWAY_COLOR), unsafe_allow_html=True)
-    with c2: st.markdown(metric_card('Connections', metrics2.get('connections', '—'), color=AWAY_COLOR), unsafe_allow_html=True)
-    with c3: st.markdown(metric_card('Density', f"{metrics2.get('density', 0):.2f}", color=AWAY_COLOR), unsafe_allow_html=True)
-    c4, c5, c6 = st.columns(3)
-    with c4: st.markdown(metric_card('Clustering', f"{metrics2.get('clustering', 0):.2f}", color=AWAY_COLOR), unsafe_allow_html=True)
-    with c5: st.markdown(metric_card('Centralization', f"{metrics2.get('centralization', 0):.1f}%", color=AWAY_COLOR), unsafe_allow_html=True)
-    with c6: st.markdown(metric_card('Passes/Link', f"{metrics2.get('avg_link_passes', 0):.1f}", color=AWAY_COLOR), unsafe_allow_html=True)
+    team_kpis(metrics2, team2, AWAY_COLOR)
+st.write("")
 
 
-# ─── TABS ─────────────────────────────────────────────────────────────────────
+# ─── ONGLETS ──────────────────────────────────────────────────────────────────
 
-tab1, tab2, tab3, tab4 = st.tabs([
-    "🕸️ Pass Networks", "🌡️ Heatmaps", "📈 Centrality", "⚔️ Comparison"
-])
+tab1, tab2, tab3, tab4 = st.tabs([t("Réseaux de passes", "Pass networks"), t("Zones de passe", "Passing zones"),
+                                  t("Centralité", "Centrality"), t("Comparaison", "Comparison")])
 
-
-# TAB 1 — PASS NETWORKS
 with tab1:
-    st.markdown('<div class="section-header">🕸️ Pass Networks — Completed passes only</div>', unsafe_allow_html=True)
+    st.caption(t("Position moyenne de chaque titulaire ; taille du cercle = passes réussies ; "
+                 f"un lien = au moins {min_passes} passes entre deux joueuses ou joueurs.",
+                 "Average position of each starter; circle size = completed passes; "
+                 f"a link = at least {min_passes} passes between two players."))
     col_a, col_b = st.columns(2)
-    with col_a:
-        fig1 = plot_pass_network(nodes1, edges1, team1, period_filter, color=HOME_COLOR)
-        st.pyplot(fig1, use_container_width=True)
-        plt.close()
-    with col_b:
-        fig2 = plot_pass_network(nodes2, edges2, team2, period_filter, color=AWAY_COLOR)
-        st.pyplot(fig2, use_container_width=True)
-        plt.close()
+    for col, nodes, edges, team, color in ((col_a, nodes1, edges1, team1, HOME_COLOR),
+                                           (col_b, nodes2, edges2, team2, AWAY_COLOR)):
+        with col:
+            st.markdown(f"<span style='color:{color};'>●</span> **{team}**", unsafe_allow_html=True)
+            show(plot_pass_network(nodes, edges, color=color))
 
-    # Top passeurs
-    st.markdown('<div class="section-header">🔝 Key Players</div>', unsafe_allow_html=True)
-    colp1, colp2 = st.columns(2)
+    st.subheader(t("Plus gros volumes de passes", "Highest passing volumes"))
 
-    def top_players_html(nodes, accent):
+    def top_players(nodes):
         if nodes.empty:
-            return "<div style='color:#718096'>Insufficient data</div>"
+            st.caption(t("Données insuffisantes", "Insufficient data"))
+            return
         top = nodes.sort_values('pass_count', ascending=False).head(5)
-        html = ""
-        for _, r in top.iterrows():
-            bc = r.get('betweenness', 0)
-            html += f"""
-            <div class="player-card" style="border-left-color:{accent}">
-                <div class="player-name">{clean_name(r['player'])}</div>
-                <div class="player-stat">Passes: <span style="color:{accent}">{int(r['pass_count'])}</span>
-                    &nbsp;|&nbsp; Centralité : <span style="color:{accent}">{bc:.3f}</span></div>
-            </div>
-            """
-        return html
+        df = pd.DataFrame({
+            t("Joueuse / joueur", "Player"): top['player'].apply(clean_name),
+            t("Passes", "Passes"): top['pass_count'].astype(int),
+            t("Centralité", "Centrality"): top.get('betweenness', pd.Series(0, index=top.index)).map(lambda v: fr_num(v, 3)),
+        })
+        st.dataframe(df, hide_index=True, width="stretch")
 
+    colp1, colp2 = st.columns(2)
     with colp1:
-        st.markdown(f"<div style='font-family:Space Mono;font-size:11px;color:{HOME_COLOR};margin-bottom:10px;'>{team1}</div>", unsafe_allow_html=True)
-        st.markdown(top_players_html(nodes1, HOME_COLOR), unsafe_allow_html=True)
+        st.markdown(f"<span style='color:{HOME_COLOR};'>●</span> **{team1}**", unsafe_allow_html=True)
+        top_players(nodes1)
     with colp2:
-        st.markdown(f"<div style='font-family:Space Mono;font-size:11px;color:{AWAY_COLOR};margin-bottom:10px;'>{team2}</div>", unsafe_allow_html=True)
-        st.markdown(top_players_html(nodes2, AWAY_COLOR), unsafe_allow_html=True)
+        st.markdown(f"<span style='color:{AWAY_COLOR};'>●</span> **{team2}**", unsafe_allow_html=True)
+        top_players(nodes2)
 
-
-# TAB 2 — HEATMAPS
 with tab2:
-    st.markdown('<div class="section-header">🌡️ Passing Position Heatmaps</div>', unsafe_allow_html=True)
     col_a, col_b = st.columns(2)
     with col_a:
-        fig3 = plot_heatmap(events, team1, period_filter, color=HOME_COLOR)
-        st.pyplot(fig3, use_container_width=True)
-        plt.close()
+        show(plot_heatmap(events, team1, period_filter, color=HOME_COLOR))
     with col_b:
-        fig4 = plot_heatmap(events, team2, period_filter, color=AWAY_COLOR)
-        st.pyplot(fig4, use_container_width=True)
-        plt.close()
+        show(plot_heatmap(events, team2, period_filter, color=AWAY_COLOR))
+    note(t("<b>Lecture</b> : les zones foncées montrent d’où l’équipe joue ses passes. Concentration haute : jeu plus direct ; "
+           "concentration au milieu : construction plus patiente.",
+           "<b>How to read it</b>: darker zones show where the team plays its passes from. High concentration: more direct play; "
+           "central concentration: more patient build-up."))
 
-    st.info("💡 **Lecture** : Les zones chaudes montrent où l'équipe initie ses passes. Concentration haute = jeu direct ; concentration médiane = build-up prudent.")
-
-
-# TAB 3 — CENTRALITY
 with tab3:
-    st.markdown('<div class="section-header">📈 Centrality Analysis — Betweenness</div>', unsafe_allow_html=True)
     col_a, col_b = st.columns(2)
-    with col_a:
-        fig5 = plot_centrality_bar(nodes1, team1, color=HOME_COLOR)
-        if fig5:
-            st.pyplot(fig5, use_container_width=True)
-            plt.close()
-    with col_b:
-        fig6 = plot_centrality_bar(nodes2, team2, color=AWAY_COLOR)
-        if fig6:
-            st.pyplot(fig6, use_container_width=True)
-            plt.close()
+    for col, nodes, team, color in ((col_a, nodes1, team1, HOME_COLOR), (col_b, nodes2, team2, AWAY_COLOR)):
+        with col:
+            st.markdown(f"<span style='color:{color};'>●</span> **{team}**", unsafe_allow_html=True)
+            fig = plot_centrality_bar(nodes, color=color)
+            if fig:
+                show(fig)
 
-    st.markdown('<div class="section-header">📋 Player Metrics Detail</div>', unsafe_allow_html=True)
+    st.subheader(t("Détail par joueuse ou joueur", "Player detail"))
 
-    def player_metrics_table(nodes, team_name, accent):
+    def player_metrics_table(nodes):
         if nodes.empty:
             return
-        st.markdown(f"<div style='font-family:Space Mono;font-size:11px;color:{accent};margin-bottom:8px;font-weight:700;'>{team_name}</div>", unsafe_allow_html=True)
-        display = nodes[['player', 'pass_count', 'betweenness', 'in_degree', 'out_degree']].copy()
-        display['player'] = display['player'].apply(clean_name)
-        display.columns = ['Player', 'Passes', 'Betweenness', 'Passes Received', 'Passes Made']
-        display = display.sort_values('Passes', ascending=False)
-        display['Betweenness'] = display['Betweenness'].round(3)
-        display['Passes Received'] = display['Passes Received'].round(0).astype(int)
-        display['Passes Made'] = display['Passes Made'].round(0).astype(int)
-        styled = display.reset_index(drop=True).style.format({'Betweenness': '{:.3f}'}).set_properties(
-            subset=['Player'], **{'color': accent, 'font-weight': 'bold'})
-        st.dataframe(styled, use_container_width=True, height=300)
+        d = nodes.sort_values('pass_count', ascending=False)
+        df = pd.DataFrame({
+            t("Joueuse / joueur", "Player"): d['player'].apply(clean_name),
+            t("Passes", "Passes"): d['pass_count'].astype(int),
+            t("Centralité", "Betweenness"): d['betweenness'].map(lambda v: fr_num(v, 3)),
+            t("Passes reçues", "Passes received"): d['in_degree'].round(0).astype(int),
+            t("Passes données", "Passes made"): d['out_degree'].round(0).astype(int),
+        })
+        st.dataframe(df, hide_index=True, width="stretch", height=300)
 
     col_t1, col_t2 = st.columns(2)
     with col_t1:
-        player_metrics_table(nodes1, team1, HOME_COLOR)
+        st.markdown(f"<span style='color:{HOME_COLOR};'>●</span> **{team1}**", unsafe_allow_html=True)
+        player_metrics_table(nodes1)
     with col_t2:
-        player_metrics_table(nodes2, team2, AWAY_COLOR)
+        st.markdown(f"<span style='color:{AWAY_COLOR};'>●</span> **{team2}**", unsafe_allow_html=True)
+        player_metrics_table(nodes2)
 
-    st.info("💡 **Betweenness centrality** : mesure combien de fois un joueur est sur le chemin de passe le plus court entre deux coéquipiers. Score élevé = pivot tactique clé.")
+    note(t("<b>Centralité d’intermédiarité</b> : part des plus courts chemins de passe entre deux coéquipières qui passent "
+           "par cette joueuse. Score élevé : pivot du jeu.",
+           "<b>Betweenness centrality</b>: share of the shortest passing paths between two teammates that go through this "
+           "player. High score: a hub of the team’s play."))
 
-
-# TAB 4 — COMPARISON
 with tab4:
-    st.markdown('<div class="section-header">⚔️ Team Structure Comparison</div>', unsafe_allow_html=True)
+    show(plot_comparison(metrics1, metrics2, team1, team2))
 
-    fig7 = plot_comparison(metrics1, metrics2, team1, team2)
-    st.pyplot(fig7, use_container_width=True)
-    plt.close()
-
-    st.markdown('<div class="section-header">📖 Tactical Interpretation</div>', unsafe_allow_html=True)
-
-    # Auto-generated tactical interpretation
+    st.subheader(t("Lecture tactique", "Tactical reading"))
     insights = []
-
     d1, d2 = metrics1.get('density', 0), metrics2.get('density', 0)
     if abs(d1 - d2) > 0.05:
         more = team1 if d1 > d2 else team2
-        insights.append(f"**Density** : {more} présente un réseau plus dense — davantage d'options et de connexions entre joueurs.")
-
+        insights.append(t(f"<b>Densité</b> : {more} a un réseau plus dense, avec davantage d’options et de liens entre joueuses.",
+                          f"<b>Density</b>: {more} has a denser network, with more options and links between players."))
     c1, c2 = metrics1.get('clustering', 0), metrics2.get('clustering', 0)
     if abs(c1 - c2) > 0.05:
         more = team1 if c1 > c2 else team2
-        insights.append(f"**Clustering** : {more} joue davantage en triangles serrés — jeu de possession structuré.")
-
+        insights.append(t(f"<b>Triangles</b> : {more} joue davantage en triangles serrés, signe d’une possession structurée.",
+                          f"<b>Clustering</b>: {more} plays more in tight triangles, a sign of structured possession."))
     ce1, ce2 = metrics1.get('centralization', 0), metrics2.get('centralization', 0)
     if abs(ce1 - ce2) > 5:
         more = team1 if ce1 > ce2 else team2
         less = team2 if ce1 > ce2 else team1
-        insights.append(f"**Centralization** : {more} dépend davantage d'un ou deux relayeurs clés, tandis que {less} distribue le jeu plus équitablement.")
-
+        insights.append(t(f"<b>Centralisation</b> : {more} dépend davantage d’une ou deux relayeuses clés ; {less} répartit le jeu plus équitablement.",
+                          f"<b>Centralization</b>: {more} relies more on one or two key relays; {less} spreads the play more evenly."))
     ap1, ap2 = metrics1.get('avg_link_passes', 0), metrics2.get('avg_link_passes', 0)
     if abs(ap1 - ap2) > 2:
         more = team1 if ap1 > ap2 else team2
-        insights.append(f"**Links** : {more} utilise ses connexions plus intensément — davantage de passes par paire de joueurs.")
-
+        insights.append(t(f"<b>Liens</b> : {more} utilise ses liens plus intensément, avec plus de passes par paire.",
+                          f"<b>Links</b>: {more} uses its links more intensely, with more passes per pair."))
     if not insights:
-        insights = ["Les deux équipes présentent des structures de jeu similaires sur ce match."]
+        insights = [t("Les deux équipes ont des structures de jeu proches sur ce match.",
+                      "Both teams show similar passing structures in this match.")]
+    for ins in insights:
+        note(ins)
 
-    for insight in insights:
-        st.markdown(f"""
-        <div style='background:#111827;border:1px solid #2d3748;border-left:3px solid #4a5568;
-                    border-radius:8px;padding:14px 16px;margin-bottom:10px;
-                    font-family: 'Inter', sans-serif;font-size:14px;color:#cbd5e0;line-height:1.6;'>
-            {insight}
-        </div>
-        """, unsafe_allow_html=True)
+    st.subheader(t("Tableau complet", "Full table"))
+    rows = [(t("Passes réussies", "Completed passes"), lambda m: str(m.get('total_passes', '—'))),
+            (t("Liens actifs", "Active links"), lambda m: str(m.get('connections', '—'))),
+            (t("Densité", "Density"), lambda m: fr_num(m.get('density', 0), 3)),
+            (t("Triangles (clustering moyen)", "Average clustering"), lambda m: fr_num(m.get('clustering', 0), 3)),
+            (t("Centralisation", "Centralization"), lambda m: fr_num(m.get('centralization', 0), 1, pct=True)),
+            (t("Passes par lien", "Passes per link"), lambda m: fr_num(m.get('avg_link_passes', 0), 1))]
+    comp_df = pd.DataFrame({t("Indicateur", "Metric"): [r[0] for r in rows],
+                            team1: [r[1](metrics1) for r in rows],
+                            team2: [r[1](metrics2) for r in rows]})
+    st.dataframe(comp_df, width="stretch", hide_index=True)
 
-    # Full metrics table comparison
-    st.markdown('<div class="section-header">📊 Full Comparison Table</div>', unsafe_allow_html=True)
-    comp_df = pd.DataFrame({
-        'Metric': ['Total Passes', 'Active Connections', 'Density', 'Avg Clustering', 'Centralization (%)', 'Avg Passes/Link'],
-        team1: [
-            metrics1.get('total_passes', '—'), metrics1.get('connections', '—'),
-            f"{metrics1.get('density', 0):.3f}", f"{metrics1.get('clustering', 0):.3f}",
-            f"{metrics1.get('centralization', 0):.1f}%", f"{metrics1.get('avg_link_passes', 0):.1f}",
-        ],
-        team2: [
-            metrics2.get('total_passes', '—'), metrics2.get('connections', '—'),
-            f"{metrics2.get('density', 0):.3f}", f"{metrics2.get('clustering', 0):.3f}",
-            f"{metrics2.get('centralization', 0):.1f}%", f"{metrics2.get('avg_link_passes', 0):.1f}",
-        ],
-    })
-    comp_styled = (comp_df.style
-                   .set_properties(subset=[team1], **{'color': HOME_COLOR, 'font-weight': 'bold'})
-                   .set_properties(subset=[team2], **{'color': AWAY_COLOR, 'font-weight': 'bold'}))
-    st.dataframe(comp_styled, use_container_width=True, hide_index=True)
+footer("Données : StatsBomb (Open Data)", "Data: StatsBomb (Open Data)")
