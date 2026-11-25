@@ -9,7 +9,7 @@ import streamlit as st
 
 warnings.filterwarnings("ignore")
 
-from jl_ui import C, footer, fr_num, header, kpi, mpl_style, note, pitch_kwargs, setup, t  # noqa: E402
+from jl_ui import C, footer, fr_num, header, is_dark, kpi, mpl_style, note, pitch_kwargs, setup, t  # noqa: E402
 
 setup("Pass Network — Julie Landrevie", "Pass Network — Julie Landrevie", icon="⚽")
 
@@ -348,11 +348,16 @@ def compute_team_metrics(nodes, edges):
         'connections': len(edges),
     }
 
-# ─── GRAPHIQUES (fond crème dans les deux thèmes, comme les visuels du site) ───
+# ─── GRAPHIQUES (couleurs du thème affiché, clair ou sombre) ───
 
 def _dark(color, k=0.55):
     r, g, b, _ = to_rgba(color)
     return (r * k, g * k, b * k, 1)
+
+
+def _light(color, k=0.45):
+    r, g, b, _ = to_rgba(color)
+    return (r + (1 - r) * k, g + (1 - g) * k, b + (1 - b) * k)
 
 
 def plot_pass_network(nodes, edges, color=HOME_COLOR):
@@ -464,7 +469,7 @@ def plot_heatmap(events, team_name, period_filter='Full Match', color=HOME_COLOR
     pitch = Pitch(pitch_type='statsbomb', line_zorder=2, **pitch_kwargs(linewidth=1.5))
     fig, ax = pitch.draw(figsize=(12, 8))
     if not passes.empty:
-        cmap = LinearSegmentedColormap.from_list('team', [C["bg"], to_rgba(color, 0.35), color, _dark(color, 0.7)])
+        cmap = LinearSegmentedColormap.from_list('team', [C["bg"], to_rgba(color, 0.35), color, _light(color, 0.45) if is_dark() else _dark(color, 0.7)])
         pitch.kdeplot(passes['x'], passes['y'], ax=ax, cmap=cmap, fill=True, levels=100,
                       alpha=0.85, bw_adjust=0.7)
     ax.set_title(f"{team_name} · {t(*PERIODS[period_filter])}", color=C["ink"], fontsize=14, pad=12)
